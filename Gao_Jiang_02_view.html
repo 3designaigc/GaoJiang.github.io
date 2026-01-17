@@ -1,0 +1,333 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gao_Jiang_01 - 3D Viewer</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111827; color: #e5e7eb; font-family: sans-serif; display: flex; }
+        canvas { display: block; flex-grow: 1; }
+        #ui-container {
+            position: absolute;
+            top: 50%;
+            left: 16px;
+            transform: translateY(-50%);
+            width: 144px;
+            max-height: 90vh;
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #4b5563;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transition: left 0.3s ease-in-out, transform 0.3s ease-in-out;
+            z-index: 10;
+        }
+        #ui-container h2 {
+            font-size: 1rem;
+            font-weight: 600;
+            margin-top: 0;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #4b5563;
+        }
+        #ui-container select, #ui-container .control-button {
+            width: 100%;
+            padding: 0.5rem 0.75rem;
+            margin-bottom: 0.5rem;
+            background-color: #374151;
+            color: #d1d5db;
+            border: 1px solid #4b5563;
+            border-radius: 0.375rem;
+            text-align: left;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s, color 0.2s;
+            box-sizing: border-box;
+        }
+        #ui-container select:hover, #ui-container .control-button:hover { background-color: #4b5563; }
+        #ui-container .control-button:disabled { background-color: #374151; color: #6b7280; cursor: not-allowed; opacity: 0.7; }
+        #ui-container select, #ui-container .control-button { text-align: center; }
+        #info { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 5px; font-size: 0.8rem; }
+        #menu-toggle { display: none; position: absolute; top: 10px; left: 10px; z-index: 1001; background: #374151; color: white; border: 1px solid #4b5563; border-radius: 5px; width: 40px; height: 40px; font-size: 24px; cursor: pointer; }
+        #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        #progress-container { width: 300px; text-align: center; color: white; }
+        #progress-bar-wrapper { width: 100%; height: 8px; background-color: #374151; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        #progress-bar { width: 0%; height: 100%; background-color: #3b82f6; border-radius: 4px; transition: width 0.1s linear; }
+        #progress-text { font-size: 1rem; color: #d1d5db; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        @media (max-width: 639px) {
+            #ui-container {
+                position: fixed;
+                left: -176px; /* width 144px + padding 32px */
+                top: 0;
+                transform: translateY(0);
+                height: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+                border-right: 1px solid #4b5563;
+                border-left: none;
+                border-top: none;
+                border-bottom: none;
+                box-shadow: none;
+                z-index: 1000;
+            }
+            #ui-container.open { left: 0; }
+            #ui-container.open ~ #overlay { display: block; }
+            #menu-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <button id="menu-toggle">☰</button>
+    <div id="ui-container" style="display: none;"></div>
+    <div id="overlay"></div>
+    <div id="info"></div>
+    <div id="loader">
+      <div id="progress-container">
+        <div id="progress-bar-wrapper"><div id="progress-bar" style="width: 0%;"></div></div>
+        <span id="progress-text">Loading... 0%</span>
+      </div>
+    </div>
+
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+        let camera, scene, renderer, controls, mixer, clock;
+        const infoElement = document.getElementById('info');
+        const uiContainer = document.getElementById('ui-container');
+        const loaderElement = document.getElementById('loader');
+        const progressTextElement = document.getElementById('progress-text');
+        const progressBarElement = document.getElementById('progress-bar');
+        const originalMaterials = new Map();
+        let selectedObject = null, allMeshes = [], selectableObjects = [];
+        let actions = {}, selectedAction = null;
+
+        const highlightMaterial = new THREE.MeshStandardMaterial({ emissive: 'yellow', emissiveIntensity: 0.5, color: 'yellow' });
+        
+        init();
+        animate();
+
+        function centerViewOnSelected() {
+            if (!selectedObject) return;
+            const center = new THREE.Box3().setFromObject(selectedObject).getCenter(new THREE.Vector3());
+            controls.target.copy(center);
+            controls.update();
+        }
+
+        function init() {
+            clock = new THREE.Clock();
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            document.body.appendChild(renderer.domElement);
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.5, 4);
+            const environment = new RoomEnvironment(renderer);
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            scene.environment = pmremGenerator.fromScene(environment).texture;
+            environment.dispose(); pmremGenerator.dispose();
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 1, 0);
+
+            new GLTFLoader().load("./glb/Gao_Jiang_01.glb", (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
+                scene.add(model);
+                
+                const fov = camera.fov * (Math.PI / 180);
+                const tanFov = Math.tan(fov / 2);
+                const distToFitHeight = size.y / (2 * tanFov);
+                const distToFitWidth = size.x / (2 * tanFov * camera.aspect);
+                const distance = Math.max(distToFitHeight, distToFitWidth);
+                camera.position.set(0, 0, distance + size.z / 2);
+                camera.lookAt(0, 0, 0);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                
+                if(infoElement) infoElement.textContent = 'Controls: Orbit (left-click), Zoom (scroll), Pan (right-click)';
+                if(loaderElement) loaderElement.style.display = 'none';
+                setupUI(gltf);
+            }, (xhr) => {
+                if (xhr.total > 0) {
+                    const percentage = (xhr.loaded / xhr.total) * 100;
+                    const roundedPercentage = Math.round(percentage);
+                    if(progressTextElement) progressTextElement.textContent = 'Loading... ' + roundedPercentage + '%';
+                    if(progressBarElement) progressBarElement.style.width = roundedPercentage + '%';
+                }
+            }, (error) => {
+                console.error('An error occurred loading the model:', error);
+                if(infoElement) infoElement.textContent = 'Error: Could not load model.';
+                if(loaderElement) loaderElement.style.display = 'none';
+            });
+            
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            
+            const menuToggle = document.getElementById('menu-toggle');
+            const overlay = document.getElementById('overlay');
+            if (menuToggle && uiContainer) {
+                menuToggle.addEventListener('click', (e) => { e.stopPropagation(); uiContainer.classList.toggle('open'); });
+            }
+            if (overlay) {
+                overlay.addEventListener('click', () => uiContainer.classList.remove('open'));
+            }
+        }
+
+        function setupUI(gltf) {
+            allMeshes = [];
+            gltf.scene.traverse(child => { 
+                if (child.isMesh) { 
+                    allMeshes.push(child);
+                    originalMaterials.set(child.uuid, child.material); 
+                } 
+            });
+            selectableObjects = gltf.scene.children.filter(child => child.visible && (child.isMesh || child.isGroup));
+
+            let uiGenerated = false;
+            const hasAnimations = gltf.animations && gltf.animations.length > 0;
+            if (hasAnimations) { mixer = new THREE.AnimationMixer(gltf.scene); gltf.animations.forEach(clip => { actions[clip.name] = mixer.clipAction(clip); }); }
+            if (uiContainer) uiContainer.style.display = 'block';
+
+            if (hasAnimations) {
+                uiGenerated = true;
+                const animHeader = document.createElement('h2');
+                animHeader.textContent = 'Animations';
+                uiContainer.appendChild(animHeader);
+                const select = document.createElement('select');
+                gltf.animations.forEach(clip => { const option = document.createElement('option'); option.value = clip.name; option.textContent = clip.name; select.appendChild(option); });
+                select.onchange = (e) => playAnimation(e.target.value);
+                uiContainer.appendChild(select);
+                const playPauseButton = document.createElement('button');
+                playPauseButton.textContent = 'Pause';
+                playPauseButton.className = 'control-button';
+                playPauseButton.onclick = togglePlayPause;
+                uiContainer.appendChild(playPauseButton);
+                playAnimation(gltf.animations[0].name);
+            }
+
+            if (selectableObjects.length > 1) {
+                uiGenerated = true;
+                const objectsHeader = document.createElement('h2');
+                if (hasAnimations) { objectsHeader.style.marginTop = '1rem'; }
+                objectsHeader.textContent = 'Objects';
+                uiContainer.appendChild(objectsHeader);
+                
+                const select = document.createElement('select');
+                select.id = 'object-selector';
+                select.innerHTML = '<option value="">-- Select an Object --</option>';
+                selectableObjects.forEach((obj, index) => {
+                    const option = document.createElement('option');
+                    option.value = obj.uuid;
+                    option.textContent = obj.name || 'Object ' + (index + 1);
+                    select.appendChild(option);
+                });
+                select.onchange = (e) => {
+                    const objectToSelect = e.target.value ? selectableObjects.find(m => m.uuid === e.target.value) : null;
+                    selectObject(objectToSelect);
+                };
+                uiContainer.appendChild(select);
+
+                const sceneHeader = document.createElement('h2'); sceneHeader.style.marginTop = '1rem'; sceneHeader.textContent = 'Scene'; uiContainer.appendChild(sceneHeader);
+                const centerButton = document.createElement('button'); centerButton.id = 'center-view-button'; centerButton.textContent = 'Center on selected'; centerButton.className = 'control-button'; centerButton.disabled = true;
+                centerButton.onclick = centerViewOnSelected; uiContainer.appendChild(centerButton);
+            }
+            
+            if(!uiGenerated) {
+                const header = document.createElement('h2'); header.textContent = 'Info';
+                const message = document.createElement('p'); message.textContent = 'No selectable parts or animations.'; message.style.cssText = 'color: #d1d5db; font-size: 0.875rem;';
+                uiContainer.appendChild(header); uiContainer.appendChild(message);
+            }
+        }
+
+        function selectObject(objectToSelect) {
+            const isDeselecting = selectedObject === objectToSelect;
+
+            if (selectedObject) {
+                selectedObject.traverse(child => {
+                    if (child.isMesh && originalMaterials.has(child.uuid)) {
+                        child.material = originalMaterials.get(child.uuid);
+                    }
+                });
+            }
+
+            selectedObject = isDeselecting ? null : objectToSelect;
+
+            if (selectedObject) {
+                selectedObject.traverse(child => {
+                    if (child.isMesh) {
+                        const originalMat = originalMaterials.get(child.uuid);
+                        if (Array.isArray(originalMat)) {
+                            child.material = new Array(originalMat.length).fill(highlightMaterial);
+                        } else {
+                            child.material = highlightMaterial;
+                        }
+                    }
+                });
+            }
+
+            const dropdown = document.getElementById('object-selector');
+            if(dropdown) dropdown.value = selectedObject ? selectedObject.uuid : '';
+
+            const centerButton = document.getElementById('center-view-button'); if (centerButton) { centerButton.disabled = !selectedObject; }
+        }
+        
+        function onCanvasClick(event) {
+            if (event.target !== renderer.domElement) return;
+            const rect = renderer.domElement.getBoundingClientRect(); const pointer = new THREE.Vector2();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            const raycaster = new THREE.Raycaster(); raycaster.setFromCamera(pointer, camera);
+            const intersects = raycaster.intersectObjects(allMeshes);
+            if (intersects.length > 0) {
+                let clickedMesh = intersects[0].object;
+                let selectableAncestor = null;
+                while(clickedMesh) {
+                    if (selectableObjects.includes(clickedMesh)) {
+                        selectableAncestor = clickedMesh;
+                        break;
+                    }
+                    clickedMesh = clickedMesh.parent;
+                }
+
+                if (selectableAncestor) {
+                    selectObject(selectableAncestor === selectedObject ? null : selectableAncestor);
+                } else {
+                    selectObject(null);
+                }
+            } else if (selectedObject) {
+                selectObject(null);
+            }
+        }
+
+        function playAnimation(name) {
+            if (selectedAction) selectedAction.fadeOut(0.5);
+            selectedAction = actions[name]; selectedAction.reset().fadeIn(0.5).play();
+            const btn = uiContainer.querySelector('.control-button'); if(btn) { btn.textContent = 'Pause'; selectedAction.paused = false; }
+        }
+
+        function togglePlayPause() {
+            if (!selectedAction) return; selectedAction.paused = !selectedAction.paused;
+            const btn = uiContainer.querySelector('.control-button'); if(btn) btn.textContent = selectedAction.paused ? 'Play' : 'Pause';
+        }
+        
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+        function animate() { requestAnimationFrame(animate); const delta = clock.getDelta(); if (mixer) mixer.update(delta); controls.update(); renderer.render(scene, camera); }
+    </script>
+</body>
+</html>
