@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gao_Jiang</title>
+	
+    <style>
+        body {
+            display: flex;
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            font-family: oswald, sans-serif;
+        }
+        #left {
+            width: 10%;
+            background-color: #f0f0f0;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #right {
+            width: 80%;
+            border: none;
+        }
+        .file-link {
+            display: block;
+            margin: 10px 0;
+            padding: 10px;
+            background-color: #ffffff;
+            text-decoration: none;
+            color: #333;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            text-align: center;
+        }
+        .file-link:hover {
+            background-color: #ddd;
+        }
+        iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+    </style>
+    <script>
+        function loadIframe(file) {
+            document.getElementById('iframe').src = file;
+        }
+    </script>
+</head>
+<body>
+    <div id="left">
+        <a href="#" class="file-link" onclick="loadIframe('Gao_Jiang_01_view.html')">Gao_Jiang</a>
+		<a href="#" class="file-link" onclick="loadIframe('VizkenIV/VizkenIV.html')">VizkenIV</a>
+		<a href="#" class="file-link" onclick="loadIframe('HTML5/HTML5.html')">HTML5</a>
+	
+		
+        
+    </div>
+    <div id="right">
+        <iframe id="iframe" src="Gao_Jiang_01_view.html"></iframe>
+    </div>
+</body>
+</html>
