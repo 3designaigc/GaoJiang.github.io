@@ -1,66 +1,76 @@
 <!DOCTYPE html>
-<html lang="zh-TW">
+<html lang="zh">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gao_Jiang</title>
-	
+    <title>GaoJiang</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC&family=Oswald&display=swap" rel="stylesheet">
     <style>
-        body {
-            display: flex;
+        body,
+        html {
             margin: 0;
             padding: 0;
-            height: 100vh;
-            font-family: oswald, sans-serif;
+            height: 100%;
+            overflow: hidden;
+            font-family: 'Noto Sans TC', sans-serif;
         }
-        #left {
-            width: 10%;
-            background-color: #f0f0f0;
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+
+        .top,
+        .bottom {
+            flex: 0 0 10%;
+            background-color: #f1f1f1;
+            text-align: left;
             padding: 10px;
             box-sizing: border-box;
-            overflow-y: auto;
+            font-family: 'Oswald', sans-serif;
         }
-        #right {
-            width: 80%;
-            border: none;
+
+        .middle {
+            flex: 1;
+            overflow: hidden;
         }
-        .file-link {
-            display: block;
-            margin: 10px 0;
-            padding: 10px;
-            background-color: #ffffff;
-            text-decoration: none;
-            color: #333;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            text-align: center;
-        }
-        .file-link:hover {
-            background-color: #ddd;
-        }
+
         iframe {
             width: 100%;
             height: 100%;
             border: none;
         }
-    </style>
-    <script>
-        function loadIframe(file) {
-            document.getElementById('iframe').src = file;
+
+        .link {
+            display: inline-block;
+            margin: 0 10px;
         }
-    </script>
+
+        h2 {
+            display: inline;
+        }
+    </style>
 </head>
+
 <body>
-    <div id="left">
-        <a href="#" class="file-link" onclick="loadIframe('Gao_Jiang_01_view.html')">Gao_Jiang</a>
-		<a href="#" class="file-link" onclick="loadIframe('Gao_Jiang_02_view.html')">glb</a>
-		<a href="#" class="file-link" onclick="loadIframe('HTML5/HTML5.html')">HTML5</a>
-	
-		
-        
-    </div>
-    <div id="right">
-        <iframe id="iframe" src="Gao_Jiang_01_view.html"></iframe>
+    <div class="container">
+        <div class="top">
+            <h2>AIGC.Images</h2>
+            <div class="link"><a href="Gao_Jiang_01_view.html" target="content">Base64</a></div>
+            <div class="link"><a href="Gao_Jiang_02_view.html" target="content">Glb</a></div>
+            <div class="link"><a href="Gao_Jiang_06_Ani.html" target="content">Break Down</a></div>
+            <div class="link"><a href="GJ_TopCover_ANI.html" target="content">上蓋</a></div>
+            <div class="link"><a href="02.Mortar_01A.html" target="content">球臼套筒</a></div>
+            <div class="link"><a href="GuidePost_01A.html" target="content">導柱</a></div>
+            <div class="link"><a href="04Base_01A.html" target="content">基座</a></div>
+            <div class="link"><a href="Pip_GaoJiang.html" target="content">整合</a></div>
+        </div>
+        <div class="middle">
+            <iframe src="Gao_Jiang_06_Ani.html" name="content"></iframe>
+        </div>
     </div>
 </body>
+
 </html>
