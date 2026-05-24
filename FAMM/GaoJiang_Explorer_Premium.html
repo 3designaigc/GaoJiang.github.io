@@ -1,0 +1,1311 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GAOJIANG | 高江 3D 智慧組立視覺化主控台</title>
+  
+  <!-- Premium Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --pad: 16px;
+      --pip-w: 380px;
+      --pip-h: 250px;
+      --panel-h: 76px;
+      
+      /* Cyber Industrial SCADA Palette */
+      --bg-obsidian: #060814;
+      --bg-panel: rgba(10, 15, 30, 0.75);
+      --bg-card: rgba(22, 30, 56, 0.85);
+      --border-color: rgba(99, 102, 241, 0.18);
+      --border-glow: rgba(59, 130, 246, 0.35);
+      
+      --primary: #8b5cf6;          /* Cyber Violet */
+      --primary-glow: rgba(139, 92, 246, 0.4);
+      --accent: #3b82f6;           /* Cyan Blue */
+      --accent-glow: rgba(59, 130, 246, 0.4);
+      
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-dim: #64748b;
+      
+      --font-family: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: var(--font-family);
+      background-color: var(--bg-obsidian);
+      color: var(--text-primary);
+    }
+
+    /* -------------------------------------------------------------
+     * MAIN VIEWPORT IFRAME
+     * ------------------------------------------------------------- */
+    #main {
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+      background: radial-gradient(circle at center, #111827 0%, #030712 100%);
+      z-index: 1;
+    }
+
+    /* -------------------------------------------------------------
+     * DRAG SHIELD (Crucial for smooth iframe dragging)
+     * ------------------------------------------------------------- */
+    .drag-shield {
+      position: fixed;
+      inset: 0;
+      z-index: 4000;
+      background: transparent;
+      display: none;
+      cursor: move;
+    }
+    .drag-shield.resizing {
+      cursor: nwse-resize;
+    }
+
+    /* -------------------------------------------------------------
+     * FLOATING CONTROL HEADER (Top HUD)
+     * ------------------------------------------------------------- */
+    .hud-panel {
+      position: fixed;
+      top: 14px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 90%;
+      max-width: 1300px;
+      height: var(--panel-h);
+      background: var(--bg-panel);
+      backdrop-filter: blur(20px) saturate(1.6);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      box-shadow: 
+        0 10px 30px rgba(0, 0, 0, 0.5),
+        0 0 15px rgba(139, 92, 246, 0.1),
+        inset 0 0 10px rgba(255, 255, 255, 0.02);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      z-index: 2000;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .hud-panel:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+      box-shadow: 
+        0 12px 35px rgba(0, 0, 0, 0.6),
+        0 0 20px rgba(139, 92, 246, 0.2);
+    }
+
+    .hud-left {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Hamburger Sidebar Toggle */
+    .drawer-toggle {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      width: 42px;
+      height: 42px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .drawer-toggle:hover {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      transform: scale(1.05);
+    }
+    .drawer-toggle svg {
+      width: 20px;
+      height: 20px;
+    }
+
+    .brand-block {
+      display: flex;
+      flex-direction: column;
+    }
+    .brand-title {
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .brand-subtitle {
+      font-size: 0.68rem;
+      color: var(--text-secondary);
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .hud-center {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 6px 12px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      transition: all 0.2s;
+    }
+    .control-group:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(139, 92, 246, 0.2);
+    }
+    .control-group.highlight {
+      background: rgba(139, 92, 246, 0.06);
+      border-color: rgba(139, 92, 246, 0.25);
+    }
+
+    .hud-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Custom futuristic dropdown */
+    select {
+      background: var(--bg-card);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 6px 30px 6px 12px;
+      font-family: var(--font-family);
+      font-size: 0.85rem;
+      font-weight: 500;
+      cursor: pointer;
+      appearance: none;
+      outline: none;
+      transition: all 0.2s;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b5cf6' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 10px center;
+      min-width: 170px;
+    }
+    select:hover {
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
+    }
+
+    /* Iconic Buttons */
+    .icon-btn {
+      width: 34px;
+      height: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      color: var(--text-primary);
+      cursor: pointer;
+      position: relative;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .icon-btn:hover {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
+    }
+    .icon-btn:active {
+      transform: translateY(0);
+    }
+    .icon-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2.2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+    .icon-btn.size-sm {
+      width: 28px;
+      height: 28px;
+      border-radius: 6px;
+    }
+    .icon-btn.size-sm svg {
+      width: 13px;
+      height: 13px;
+    }
+
+    /* Switch toggle */
+    .switch-label {
+      position: relative;
+      width: 38px;
+      height: 20px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 10px;
+      cursor: pointer;
+      display: block;
+      transition: background 0.3s;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+    .switch-label::after {
+      content: '';
+      position: absolute;
+      top: 1px;
+      left: 1px;
+      width: 16px;
+      height: 16px;
+      background: #cbd5e1;
+      border-radius: 50%;
+      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    input[type="checkbox"] {
+      display: none;
+    }
+    input[type="checkbox"]:checked + .switch-label {
+      background: var(--primary);
+    }
+    input[type="checkbox"]:checked + .switch-label::after {
+      left: 19px;
+      background: #fff;
+    }
+
+    /* Opacity Range Slider */
+    .slider-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    input[type="range"] {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 80px;
+      height: 5px;
+      border-radius: 3px;
+      background: rgba(255, 255, 255, 0.1);
+      outline: none;
+    }
+    input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 13px;
+      height: 13px;
+      border-radius: 50%;
+      background: var(--primary);
+      cursor: pointer;
+      border: 2px solid #fff;
+      box-shadow: 0 0 6px rgba(139,92,246,0.6);
+      transition: transform 0.1s;
+    }
+    input[type="range"]::-webkit-slider-thumb:hover {
+      transform: scale(1.2);
+    }
+    .slider-val {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--primary);
+      width: 32px;
+      text-align: right;
+    }
+
+    /* Tooltips */
+    .tooltip {
+      position: absolute;
+      bottom: -32px;
+      left: 50%;
+      transform: translateX(-50%) translateY(4px);
+      background: rgba(10, 12, 22, 0.95);
+      border: 1px solid var(--border-color);
+      padding: 4px 8px;
+      border-radius: 6px;
+      font-size: 0.65rem;
+      white-space: nowrap;
+      pointer-events: none;
+      opacity: 0;
+      color: #fff;
+      transition: opacity 0.2s, transform 0.2s;
+      z-index: 1000;
+    }
+    .icon-btn:hover .tooltip {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    /* Divider */
+    .vertical-divider {
+      width: 1px;
+      height: 28px;
+      background: rgba(255, 255, 255, 0.08);
+      margin: 0 4px;
+    }
+
+    /* -------------------------------------------------------------
+     * SLIDING ASSEMBLY MODULES DRAWER (Left Sidebar)
+     * ------------------------------------------------------------- */
+    .sidebar-drawer {
+      position: fixed;
+      top: 0;
+      left: -320px;
+      width: 300px;
+      height: 100%;
+      background: rgba(8, 10, 20, 0.92);
+      backdrop-filter: blur(25px);
+      border-right: 1px solid var(--border-color);
+      z-index: 3000;
+      box-shadow: 20px 0 50px rgba(0, 0, 0, 0.6);
+      transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      flex-direction: column;
+    }
+    .sidebar-drawer.open {
+      left: 0;
+    }
+
+    .drawer-header {
+      padding: 24px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .drawer-title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .drawer-title svg {
+      color: var(--primary);
+    }
+
+    .drawer-content {
+      flex-grow: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .assembly-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 10px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+    }
+    .assembly-item:hover {
+      background: rgba(139, 92, 246, 0.05);
+      border-color: rgba(139, 92, 246, 0.25);
+      transform: translateX(4px);
+    }
+    .assembly-item.active {
+      background: rgba(139, 92, 246, 0.12);
+      border-color: var(--primary);
+      box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.1);
+    }
+    .assembly-item svg {
+      width: 18px;
+      height: 18px;
+      color: var(--text-secondary);
+      flex-shrink: 0;
+    }
+    .assembly-item.active svg {
+      color: var(--primary);
+    }
+    .assembly-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .assembly-name {
+      font-size: 0.88rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    .assembly-file {
+      font-size: 0.68rem;
+      color: var(--text-dim);
+      margin-top: 1px;
+    }
+
+    /* Drawer overlay block */
+    .drawer-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(4px);
+      z-index: 2900;
+      display: none;
+    }
+    .drawer-overlay.open {
+      display: block;
+    }
+
+    /* -------------------------------------------------------------
+     * PICTURE-IN-PICTURE (PiP) WINDOW
+     * ------------------------------------------------------------- */
+    #pip {
+      position: fixed;
+      right: var(--pad);
+      top: calc(var(--pad) + var(--panel-h) + 12px);
+      width: var(--pip-w);
+      height: var(--pip-h);
+      background: rgba(8, 10, 22, 0.82);
+      backdrop-filter: blur(25px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      box-shadow: 
+        0 25px 60px -10px rgba(0, 0, 0, 0.6),
+        0 0 25px rgba(139, 92, 246, 0.1),
+        inset 0 0 15px rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      z-index: 1000;
+      transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
+    }
+    #pip:hover {
+      border-color: rgba(139, 92, 246, 0.35);
+      box-shadow: 
+        0 30px 65px -10px rgba(0, 0, 0, 0.7),
+        0 0 30px rgba(139, 92, 246, 0.2);
+    }
+    #pip iframe {
+      width: 100%;
+      height: 100%;
+      border: 0;
+      display: block;
+      border-radius: inherit;
+      background: radial-gradient(circle at center, #1e1b4b 0%, #030712 100%);
+    }
+
+    /* Fullscreen PiP styling */
+    #pip.fullscreen {
+      top: 0 !important;
+      left: 0 !important;
+      right: 0 !important;
+      bottom: 0 !important;
+      width: 100% !important;
+      height: 100% !important;
+      border-radius: 0 !important;
+      border: 0 !important;
+      z-index: 3500;
+    }
+
+    /* Floating Exit Fullscreen Button */
+    .exit-fs-btn {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      padding: 8px 16px;
+      background: rgba(10, 15, 30, 0.85);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(139, 92, 246, 0.4);
+      border-radius: 8px;
+      color: var(--text-primary);
+      font-family: var(--font-family);
+      font-size: 0.8rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+      transition: all 0.2s ease;
+      z-index: 100;
+    }
+    .exit-fs-btn:hover {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
+    }
+    .exit-fs-btn:active {
+      transform: translateY(0);
+    }
+    #pip.fullscreen .exit-fs-btn {
+      display: flex;
+    }
+
+    /* Resize Handle */
+    .size-handle {
+      position: absolute;
+      right: 4px;
+      bottom: 4px;
+      width: 22px;
+      height: 22px;
+      cursor: nwse-resize;
+      background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
+      border-radius: 0 0 18px 0;
+      opacity: 0.6;
+      transition: opacity 0.2s;
+      z-index: 10;
+    }
+    .size-handle:hover {
+      opacity: 1;
+    }
+
+    /* -------------------------------------------------------------
+     * FLOATING TOASTS NOTIFICATIONS
+     * ------------------------------------------------------------- */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 24px;
+      background: rgba(10, 15, 30, 0.95);
+      border-left: 4px solid var(--primary);
+      border-top: 1px solid var(--border-color);
+      border-right: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 12px 20px;
+      border-radius: 0 8px 8px 0;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      z-index: 9999;
+      transform: translateY(120%);
+      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.85rem;
+      font-weight: 500;
+    }
+    .toast.show {
+      transform: translateY(0);
+    }
+    .toast svg {
+      width: 16px;
+      height: 16px;
+      color: var(--primary);
+    }
+
+    /* Spinner Animation */
+    @keyframes spin {
+      100% { transform: rotate(360deg); }
+    }
+    .spinning svg {
+      animation: spin 0.8s linear infinite;
+    }
+
+    /* -------------------------------------------------------------
+     * RESPONSIVE LAYOUT (RWD)
+     * ------------------------------------------------------------- */
+    @media (max-width: 768px) {
+      :root {
+        --panel-h: 60px;
+        --pip-w: 240px;
+        --pip-h: 160px;
+      }
+      
+      .hud-panel {
+        top: 8px;
+        width: 96%;
+        height: var(--panel-h);
+        padding: 0 12px;
+        border-radius: 12px;
+      }
+      
+      /* Hide secondary and cluttered HUD controls on mobile */
+      .hud-center > * {
+        display: none !important;
+      }
+      
+      /* Keep only the main selector control-group visible */
+      .hud-center > .control-group.highlight {
+        display: flex !important;
+        width: 100%;
+        justify-content: space-between;
+        padding: 4px 8px;
+      }
+      
+      .brand-block {
+        display: none; /* Hide brand details on small screens to save space */
+      }
+      
+      .hud-center {
+        width: 100%;
+        justify-content: flex-end;
+      }
+      
+      select {
+        min-width: 110px;
+        max-width: 160px;
+        font-size: 0.8rem;
+        padding: 4px 24px 4px 8px;
+      }
+      
+      #pip {
+        width: var(--pip-w) !important;
+        height: var(--pip-h) !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        top: auto !important;
+        left: auto !important;
+        border-radius: 12px;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      }
+      
+      .sidebar-drawer {
+        width: 260px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- VIEWPORT IFRAME (Loads 3D Assembly File) -->
+  <iframe id="main" src="Gao_Jiang_06_Ani.html" allow="xr; autoplay; fullscreen"></iframe>
+
+  <!-- INVISIBLE DRAG / RESIZE SHIELD OVER IFRAMES -->
+  <div id="dragShield" class="drag-shield"></div>
+
+  <!-- TOAST NOTIFICATION -->
+  <div id="toast" class="toast">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+    <span id="toast-text">System Initialized</span>
+  </div>
+
+  <!-- COLLAPSIBLE LEFT DRAWER (Assembly Modules Explorer) -->
+  <div id="drawerOverlay" class="drawer-overlay"></div>
+  <aside id="sidebarDrawer" class="sidebar-drawer">
+    <div class="drawer-header">
+      <div class="drawer-title">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
+        <span>組立組件選單</span>
+      </div>
+      <button class="icon-btn" id="btn-close-drawer" title="關閉">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    
+    <div class="drawer-content" id="drawer-assemblies">
+      <!-- Assemblies dynamically mapped here -->
+    </div>
+  </aside>
+
+  <!-- FLOATING HUD PANEL (Top Control Panel) -->
+  <header class="hud-panel" id="hudPanel">
+    
+    <!-- LEFT HUD: Drawer & Brand -->
+    <div class="hud-left">
+      <button class="drawer-toggle" id="btn-open-drawer" title="開啟組件選單">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+      <a href="../index.html" class="icon-btn" title="回到首頁" style="margin-left: 4px;">
+        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+        <span class="tooltip">回到首頁</span>
+      </a>
+      <div class="brand-block">
+        <span class="brand-title">GAOJIANG</span>
+        <span class="brand-subtitle">3D Parts Center</span>
+      </div>
+    </div>
+
+    <!-- CENTER HUD: Detail Source select, transparency, switch PiP, fullscreen -->
+    <div class="hud-center">
+      
+      <!-- Source Component Selector -->
+      <div class="control-group highlight">
+        <span class="hud-label">詳細零件</span>
+        <select id="srcSel">
+          <option value="GJ_TopCover_ANI.html" selected>高板上蓋運動組立</option>
+          <option value="02.Mortar_01A.html">球臼防護套筒組立</option>
+          <option value="GuidePost_01A.html">精準導柱引導組立</option>
+          <option value="04Base_01A.html">大型基座支撐組立</option>
+        </select>
+        
+        <button class="icon-btn" id="reload" title="重新整理零件">
+          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
+          <span class="tooltip">重新整理零件</span>
+        </button>
+      </div>
+
+      <div class="vertical-divider"></div>
+
+      <!-- Display PiP toggle -->
+      <div class="control-group">
+        <span class="hud-label">PiP 視窗</span>
+        <input type="checkbox" id="togglePip" checked>
+        <label for="togglePip" class="switch-label"></label>
+      </div>
+
+      <!-- Click-through penetrable toggle -->
+      <div class="control-group">
+        <span class="hud-label">鎖定</span>
+        <input type="checkbox" id="clickThrough">
+        <label for="clickThrough" class="switch-label"></label>
+      </div>
+
+      <!-- Auto sync toggle -->
+      <div class="control-group">
+        <span class="hud-label">自動點擊同步</span>
+        <input type="checkbox" id="autoSwitch" checked>
+        <label for="autoSwitch" class="switch-label"></label>
+      </div>
+
+      <div class="vertical-divider"></div>
+
+      <!-- Opacity Controller -->
+      <div class="control-group">
+        <span class="hud-label">透明度</span>
+        <div class="slider-container">
+          <input type="range" id="opacity" min="20" max="100" value="100">
+          <span class="slider-val" id="opv">100%</span>
+        </div>
+      </div>
+
+      <div class="vertical-divider"></div>
+
+      <!-- Preset Size Buttons -->
+      <div class="control-group">
+        <button class="icon-btn size-sm" data-size="240x160" title="小視窗">
+          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
+          <span class="tooltip">小尺寸 (240×160)</span>
+        </button>
+        <button class="icon-btn size-sm" data-size="380x250" title="中視窗">
+          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
+          <span class="tooltip">預設中尺寸 (380×250)</span>
+        </button>
+        <button class="icon-btn size-sm" data-size="520x350" title="大視窗">
+          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/></svg>
+          <span class="tooltip">大尺寸 (520×350)</span>
+        </button>
+        <button class="icon-btn size-sm" data-size="full" title="劇院極大 (滿畫面)">
+          <svg viewBox="0 0 24 24"><path d="M2 4h20v16H2z"/></svg>
+          <span class="tooltip">劇院極大 (滿畫面)</span>
+        </button>
+      </div>
+
+      <div class="vertical-divider"></div>
+
+      <!-- PiP Alignment Pin Buttons -->
+      <div class="control-group">
+        <button class="icon-btn size-sm" id="pinTL" title="對齊左上 (↖)">
+          <svg viewBox="0 0 24 24"><path d="M19 19L5 5M5 5h8M5 5v8"/></svg>
+          <span class="tooltip">對齊左上 (↖)</span>
+        </button>
+        <button class="icon-btn size-sm" id="pinTR" title="對齊右上 (↗)">
+          <svg viewBox="0 0 24 24"><path d="M5 19L19 5M19 5h-8M19 5v8"/></svg>
+          <span class="tooltip">對齊右上 (↗)</span>
+        </button>
+        <button class="icon-btn size-sm" id="pinBL" title="對齊左下 (↙)">
+          <svg viewBox="0 0 24 24"><path d="M19 5L5 19M5 19h8M5 19v-8"/></svg>
+          <span class="tooltip">對齊左下 (↙)</span>
+        </button>
+        <button class="icon-btn size-sm" id="pinBR" title="對齊右下 (↘)">
+          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 19h-8M19 19v-8"/></svg>
+          <span class="tooltip">對齊右下 (↘)</span>
+        </button>
+      </div>
+
+      <div class="vertical-divider"></div>
+
+      <!-- Fullscreen Toggle Button -->
+      <div class="control-group">
+        <button class="icon-btn size-sm" id="toggleFS" title="全螢幕模式 (F)">
+          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
+          <span class="tooltip" id="fs-tooltip">全螢幕零件 (F)</span>
+        </button>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- DRAGGABLE & RESIZABLE PIP WINDOW -->
+  <article id="pip">
+    <iframe id="pipFrame" src="GJ_TopCover_ANI.html" allow="xr; autoplay; fullscreen"></iframe>
+    <button id="exitFSBtn" class="exit-fs-btn" title="切回視窗模式">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6m10-10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
+      <span>還原視窗</span>
+    </button>
+    <div class="size-handle" id="sizeHandle"></div>
+  </article>
+
+  <!-- APP STATE CONTROLLER SCRIPTS -->
+  <script>
+    // 1. Assemblies List Data Mapping
+    const assembliesList = [
+      { id: 'ani_main', name: '高江主結構動畫組立', file: 'Gao_Jiang_06_Ani.html', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
+      { id: 'view_main', name: '高江主結構靜態組立', file: 'Gao_Jiang_01_view.html', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+      { id: 'multi_main', name: '高江主結構多視角可視化', file: 'Gao_Jiang_02_view.html', icon: 'M4 6h16M4 10h16M4 14h16M4 18h16' },
+      { id: 'topcover', name: '高板上蓋運動組立', file: 'GJ_TopCover_ANI.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: 'mortar', name: '球臼防護套筒組立', file: '02.Mortar_01A.html', icon: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z' },
+      { id: 'base', name: '大型基座支撐組立', file: '04Base_01A.html', icon: 'M6 3v12M18 3v12M6 15h12M12 15V9' },
+      { id: 'guidepost', name: '精準導柱引導組立', file: 'GuidePost_01A.html', icon: 'M6 3v18M18 3v18M6 15h12' }
+    ];
+
+    // Select DOM nodes
+    const mainIframe = document.getElementById('main');
+    const pip = document.getElementById('pip');
+    const pipFrame = document.getElementById('pipFrame');
+    const dragShield = document.getElementById('dragShield');
+    const sidebarDrawer = document.getElementById('sidebarDrawer');
+    const drawerOverlay = document.getElementById('drawerOverlay');
+    const toast = document.getElementById('toast');
+    const toastText = document.getElementById('toast-text');
+
+    // Drawer Elements Mapping
+    const btnOpenDrawer = document.getElementById('btn-open-drawer');
+    const btnCloseDrawer = document.getElementById('btn-close-drawer');
+    const assembliesContainer = document.getElementById('drawer-assemblies');
+
+    // HUD Inputs Mapping
+    const srcSel = document.getElementById('srcSel');
+    const reloadBtn = document.getElementById('reload');
+    const togglePip = document.getElementById('togglePip');
+    const clickThrough = document.getElementById('clickThrough');
+    const autoSwitchCheckbox = document.getElementById('autoSwitch');
+    const opacitySlider = document.getElementById('opacity');
+    const opv = document.getElementById('opv');
+    const toggleFS = document.getElementById('toggleFS');
+
+    // 3D mesh names to detailed HTML file mapping table
+    const objectToFileMap = {
+      // English Names (Fallback & Standard)
+      'TopCover': 'GJ_TopCover_ANI.html',
+      'TopCoverA': 'GJ_TopCover_ANI.html',
+      'TopCover_01': 'GJ_TopCover_ANI.html',
+      'Mortar': '02.Mortar_01A.html',
+      'Mortar_01': '02.Mortar_01A.html',
+      'Mortar_01A': '02.Mortar_01A.html',
+      'Base': '04Base_01A.html',
+      'Base_01': '04Base_01A.html',
+      'Base_01A': '04Base_01A.html',
+      'GuidePost': 'GuidePost_01A.html',
+      'GuidePost_01': 'GuidePost_01A.html',
+      'GuidePost_01A': 'GuidePost_01A.html',
+
+      // Chinese Names (Actual GLB Node Names)
+      '上蓋構件': 'GJ_TopCover_ANI.html',
+      '上蓋': 'GJ_TopCover_ANI.html',
+      '球臼套筒': '02.Mortar_01A.html',
+      '球臼': '02.Mortar_01A.html',
+      '套筒': '02.Mortar_01A.html',
+      '基座': '04Base_01A.html',
+      '導柱': 'GuidePost_01A.html',
+      '05調整螺桿': 'GuidePost_01A.html',
+      '調整螺桿': 'GuidePost_01A.html'
+    };
+
+    // 2. Dynamic Toast Alert Trigger
+    function triggerToast(msg) {
+      toastText.innerText = msg;
+      toast.classList.add('show');
+      setTimeout(() => {
+        toast.classList.remove('show');
+      }, 3000);
+    }
+
+    // 3. Populate Assembly Sidebar Drawer
+    function setupDrawer() {
+      assembliesContainer.innerHTML = '';
+      
+      assembliesList.forEach(asm => {
+        const div = document.createElement('div');
+        div.className = `assembly-item ${asm.file === 'Gao_Jiang_06_Ani.html' ? 'active' : ''}`;
+        div.dataset.file = asm.file;
+        
+        div.innerHTML = `
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="${asm.icon}"/>
+          </svg>
+          <div class="assembly-info">
+            <span class="assembly-name">${asm.name}</span>
+            <span class="assembly-file">${asm.file}</span>
+          </div>
+        `;
+        
+        div.addEventListener('click', () => {
+          // Switch Main Iframe Source
+          mainIframe.src = asm.file;
+          
+          // Toggle Drawer classes
+          document.querySelectorAll('.assembly-item').forEach(el => el.classList.remove('active'));
+          div.classList.add('active');
+          
+          // Close Sidebar
+          closeSidebar();
+          
+          triggerToast(`已加載模組：${asm.name}`);
+        });
+        
+        assembliesContainer.appendChild(div);
+      });
+    }
+
+    // Toggle Sidebar Drawer Methods
+    function openSidebar() {
+      sidebarDrawer.classList.add('open');
+      drawerOverlay.classList.add('open');
+    }
+    
+    function closeSidebar() {
+      sidebarDrawer.classList.remove('open');
+      drawerOverlay.classList.remove('open');
+    }
+
+    btnOpenDrawer.addEventListener('click', openSidebar);
+    btnCloseDrawer.addEventListener('click', closeSidebar);
+    drawerOverlay.addEventListener('click', closeSidebar);
+
+    // 4. Source Selector dropdown actions
+    const setSrc = (val) => {
+      pipFrame.src = val;
+      srcSel.value = val;
+      notifyMainIframe(val);
+    };
+
+    srcSel.addEventListener('change', () => {
+      pipFrame.src = srcSel.value;
+      triggerToast(`詳細零件切換為：${srcSel.options[srcSel.selectedIndex].text}`);
+      notifyMainIframe(srcSel.value);
+    });
+
+    function notifyMainIframe(fileName) {
+      let meshName = null;
+      for (const key in objectToFileMap) {
+        if (objectToFileMap[key] === fileName) {
+          meshName = key;
+          break;
+        }
+      }
+      if (!meshName) {
+        meshName = fileName.replace(".html", "").replace("GJ_", "").replace("_ANI", "");
+      }
+      
+      const mainIframe = document.getElementById('main');
+      if (mainIframe && mainIframe.contentWindow) {
+        mainIframe.contentWindow.postMessage({
+          type: "parent_selected_component",
+          componentName: meshName
+        }, "*");
+      }
+    }
+
+    // Reload PiP Component action with loading animation
+    reloadBtn.addEventListener('click', () => {
+      reloadBtn.classList.add('spinning');
+      pipFrame.src = pipFrame.src;
+      
+      setTimeout(() => {
+        reloadBtn.classList.remove('spinning');
+        triggerToast('PiP 零件模型已重新整理');
+      }, 800);
+    });
+
+    // 5. Switch Display PiP action
+    togglePip.addEventListener('change', (e) => {
+      pip.style.display = e.target.checked ? 'block' : 'none';
+      triggerToast(e.target.checked ? 'PiP 視窗已顯示' : 'PiP 視窗已隱藏');
+    });
+
+    // Click Through Penetrability action
+    clickThrough.addEventListener('change', (e) => {
+      pip.style.pointerEvents = e.target.checked ? 'none' : 'auto';
+      triggerToast(e.target.checked ? '視窗鎖定開啟 (鍵盤 T 可切換)' : '視窗鎖定關閉');
+    });
+
+    // 6. Opacity slider action
+    function updateOpacity(val) {
+      pip.style.opacity = (val / 100).toString();
+      opv.textContent = val + '%';
+    }
+    opacitySlider.addEventListener('input', (e) => {
+      updateOpacity(e.target.value);
+    });
+
+    // 7. Preset Sizes triggers
+    document.querySelectorAll('.icon-btn[data-size]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        if (btn.dataset.size === 'full') {
+          if (!pip.classList.contains('fullscreen')) {
+            toggleFS.click();
+          }
+          return;
+        }
+        if (pip.classList.contains('fullscreen')) {
+          toggleFS.click(); // Revert fullscreen first to restore custom size
+        }
+        const [w, h] = btn.dataset.size.split('x').map(Number);
+        pip.style.width = w + 'px';
+        pip.style.height = h + 'px';
+        triggerToast(`調整 PiP 大小為 ${w} × ${h}`);
+      });
+    });
+
+    // 8. Preset Positions Alignment actions (↖, ↗, ↙, ↘)
+    const SAFE_TOP = 14 + 76 + 12; // margin top + panel height + offset gap
+    
+    function clearPinCoords() {
+      pip.style.left = '';
+      pip.style.top = '';
+      pip.style.right = '';
+      pip.style.bottom = '';
+    }
+
+    document.getElementById('pinTL').addEventListener('click', () => {
+      clearPinCoords();
+      pip.style.left = '16px';
+      pip.style.top = SAFE_TOP + 'px';
+      triggerToast('對齊位置：左上角 (↖)');
+    });
+
+    document.getElementById('pinTR').addEventListener('click', () => {
+      clearPinCoords();
+      pip.style.right = '16px';
+      pip.style.top = SAFE_TOP + 'px';
+      triggerToast('對齊位置：右上角 (↗)');
+    });
+
+    document.getElementById('pinBL').addEventListener('click', () => {
+      clearPinCoords();
+      pip.style.left = '16px';
+      pip.style.bottom = '16px';
+      triggerToast('對齊位置：左下角 (↙)');
+    });
+
+    document.getElementById('pinBR').addEventListener('click', () => {
+      clearPinCoords();
+      pip.style.right = '16px';
+      pip.style.bottom = '16px';
+      triggerToast('對齊位置：右下角 (↘)');
+    });
+
+    // 9. PiP Fullscreen Toggle Functionality
+    toggleFS.addEventListener('click', () => {
+      pip.classList.toggle('fullscreen');
+      const isFS = pip.classList.contains('fullscreen');
+      
+      const fsIcon = isFS 
+        ? '<path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3"/>'
+        : '<path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>';
+        
+      toggleFS.querySelector('svg').innerHTML = fsIcon;
+      document.getElementById('fs-tooltip').innerText = isFS ? '恢復 PiP 尺寸' : '零件全螢幕 (F)';
+      triggerToast(isFS ? '零件進入全螢幕模式' : '已恢復視窗尺寸');
+    });
+
+    document.getElementById('exitFSBtn').addEventListener('click', () => {
+      toggleFS.click();
+    });
+
+    // Keyboard Shortcuts (H: Hide/Show PiP, T: Click Through, F: Fullscreen)
+    window.addEventListener('keydown', (e) => {
+      const k = e.key.toLowerCase();
+      if (k === 'h') {
+        togglePip.click();
+      } else if (k === 't') {
+        clickThrough.click();
+      } else if (k === 'f') {
+        toggleFS.click();
+      }
+    });
+
+    // 10. DRAGGING INTERACTION (Pointer Capture + Drag Shield Protection)
+    (function dragPip() {
+      let isDragging = false;
+      let startX = 0, startY = 0;
+      let originLeft = 0, originTop = 0;
+
+      pip.addEventListener('pointerdown', (e) => {
+        // Do not drag if clicking resizing handles or inputs
+        if (e.target.id === 'sizeHandle' || e.target.tagName === 'IFRAME') return;
+        if (pip.classList.contains('fullscreen')) return;
+
+        isDragging = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        originLeft = pip.offsetLeft;
+        originTop = pip.offsetTop;
+
+        // Show protective shield to absorb iframe events
+        dragShield.style.display = 'block';
+        pip.setPointerCapture(e.pointerId);
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isDragging) return;
+        
+        const deltaX = e.clientX - startX;
+        const deltaY = e.clientY - startY;
+
+        pip.style.left = (originLeft + deltaX) + 'px';
+        pip.style.top = (originTop + deltaY) + 'px';
+        pip.style.right = '';
+        pip.style.bottom = '';
+      });
+
+      const stopDrag = () => {
+        if (isDragging) {
+          isDragging = false;
+          dragShield.style.display = 'none';
+        }
+      };
+
+      pip.addEventListener('pointerup', stopDrag);
+      pip.addEventListener('pointercancel', stopDrag);
+    })();
+
+    // 11. RESIZING INTERACTION (Pointer Capture + Resize Shield Protection)
+    (function resizePip() {
+      const handle = document.getElementById('sizeHandle');
+      let isResizing = false;
+      let startX = 0, startY = 0;
+      let sw = 0, sh = 0;
+
+      handle.addEventListener('pointerdown', (e) => {
+        e.stopPropagation(); // prevent drag trigger
+        if (pip.classList.contains('fullscreen')) return;
+
+        isResizing = true;
+        startX = e.clientX;
+        startY = e.clientY;
+        sw = pip.offsetWidth;
+        sh = pip.offsetHeight;
+
+        // Show shield and mark as resizing
+        dragShield.classList.add('resizing');
+        dragShield.style.display = 'block';
+        handle.setPointerCapture(e.pointerId);
+      });
+
+      window.addEventListener('pointermove', (e) => {
+        if (!isResizing) return;
+        
+        const dw = e.clientX - startX;
+        const dh = e.clientY - startY;
+
+        pip.style.width = Math.max(180, sw + dw) + 'px';
+        pip.style.height = Math.max(120, sh + dh) + 'px';
+      });
+
+      const stopResize = () => {
+        if (isResizing) {
+          isResizing = false;
+          dragShield.classList.remove('resizing');
+          dragShield.style.display = 'none';
+        }
+      };
+
+      handle.addEventListener('pointerup', stopResize);
+      handle.addEventListener('pointercancel', stopResize);
+    })();
+
+    // 12. Cross-Iframe Click to Sync Syncing Actions
+    function switchPipByObject(objectName) {
+      if (!autoSwitchCheckbox.checked) return;
+
+      console.log('[GaoJiang Main] 收到物件點擊:', objectName);
+
+      if (!objectName) return;
+
+      let matchedFile = null;
+
+      // Match the Three.js mesh name to file mapping
+      if (objectToFileMap[objectName]) {
+        matchedFile = objectToFileMap[objectName];
+      } else {
+        // Try partial match
+        for (const key in objectToFileMap) {
+          if (objectName.includes(key) || key.includes(objectName)) {
+            matchedFile = objectToFileMap[key];
+            console.log('[GaoJiang Main] 部分匹配成功:', key, '→', matchedFile);
+            break;
+          }
+        }
+      }
+
+      if (matchedFile) {
+        setSrc(matchedFile);
+        triggerToast(`組件自動切換為：${srcSel.options[srcSel.selectedIndex].text}`);
+        
+        // Ensure PiP checkbox is displaying
+        if (!togglePip.checked) {
+          togglePip.checked = true;
+          pip.style.display = 'block';
+        }
+      } else {
+        console.log('[GaoJiang Main] 未能匹配零件，名稱為:', objectName);
+      }
+    }
+
+    // Listen to localStorage storage events
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'forklift_selected_object') {
+        const objectName = e.newValue;
+        if (objectName) {
+          switchPipByObject(objectName);
+        }
+      }
+    });
+
+    // Listen to message events from iframe (postMessage guarantees local file:// and server cross-domain twin sync!)
+    window.addEventListener('message', (event) => {
+      if (event.data && event.data.type === 'forklift_selected_object') {
+        const objectName = event.data.objectName;
+        if (objectName) {
+          switchPipByObject(objectName);
+        }
+      }
+    });
+
+    // Fallback polling for localStorage changes (helpful under file:// or iframe boundaries)
+    let lastSelectedObject = null;
+    setInterval(() => {
+      if (!autoSwitchCheckbox.checked) return;
+
+      try {
+        const currentObject = localStorage.getItem('forklift_selected_object');
+        if (currentObject !== lastSelectedObject) {
+          lastSelectedObject = currentObject;
+          if (currentObject) {
+            switchPipByObject(currentObject);
+          }
+        }
+      } catch (e) {
+        // localStorage blocked or not supported in this frame context
+      }
+    }, 300);
+
+    // 13. App Launch triggers
+    try {
+      localStorage.removeItem('forklift_selected_object');
+    } catch(e) {}
+    setupDrawer();
+    triggerToast("高江智慧組立可視化主控台已準備就緒");
+  </script>
+</body>
+</html>

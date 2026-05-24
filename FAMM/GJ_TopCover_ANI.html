@@ -1,0 +1,475 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GJ_TopCoverA - All Animations</title>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111827; color: #e5e7eb; font-family: sans-serif; display: flex; }
+        canvas { display: block; flex-grow: 1; }
+        #ui-container {
+            position: absolute;
+            top: 50%;
+            left: 16px;
+            transform: translateY(-50%);
+            width: 160px;
+            max-height: 90vh;
+            background: rgba(31, 41, 55, 0.8);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            padding: 1rem;
+            box-sizing: border-box;
+            overflow-y: auto;
+            border-radius: 0.5rem;
+            border: 1px solid #4b5563;
+            box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+            transition: left 0.3s ease-in-out, transform 0.3s ease-in-out;
+            z-index: 10;
+        }
+        #ui-container h2 { font-size: 1rem; font-weight: 600; margin-top: 0; margin-bottom: 0.75rem; padding-bottom: 0.5rem; border-bottom: 1px solid #4b5563; }
+        #ui-container select, #ui-container .control-button {
+            width: 100%; padding: 0.5rem 0.75rem; margin-bottom: 0.5rem; background-color: #374151; color: #d1d5db; border: 1px solid #4b5563;
+            border-radius: 0.375rem; text-align: left; font-size: 0.875rem; cursor: pointer; transition: background-color 0.2s, color 0.2s; box-sizing: border-box;
+        }
+        #ui-container select:hover, #ui-container .control-button:hover { background-color: #4b5563; }
+        #ui-container .control-button:disabled { background-color: #374151; color: #6b7280; cursor: not-allowed; opacity: 0.7; }
+        #ui-container select, #ui-container .control-button { text-align: center; }
+        #info { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.5); padding: 8px; border-radius: 5px; font-size: 0.8rem; }
+        #tooltip { position: absolute; background: rgba(31, 41, 55, 0.8); color: white; padding: 4px 8px; border-radius: 4px; font-size: 0.75rem; pointer-events: none; transform: translate(10px, -30px); z-index: 100; display: none; }
+        #menu-toggle { display: none; position: absolute; top: 10px; left: 10px; z-index: 1001; background: #374151; color: white; border: 1px solid #4b5563; border-radius: 5px; width: 40px; height: 40px; font-size: 24px; cursor: pointer; }
+        #loader { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(17, 24, 39, 0.9); display: flex; justify-content: center; align-items: center; z-index: 2000; }
+        #progress-container { width: 300px; text-align: center; color: white; }
+        #progress-bar-wrapper { width: 100%; height: 8px; background-color: #374151; border-radius: 4px; overflow: hidden; margin-bottom: 12px; }
+        #progress-bar { width: 0%; height: 100%; background-color: #3b82f6; border-radius: 4px; transition: width 0.1s linear; }
+        #progress-text { font-size: 1rem; color: #d1d5db; }
+        #overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 999; }
+        @media (max-width: 639px) {
+            #ui-container {
+                position: fixed;
+                left: -192px; /* width 160px + padding 32px */
+                top: 0;
+                transform: translateY(0);
+                height: 100%;
+                max-height: 100vh;
+                border-radius: 0;
+                border-right: 1px solid #4b5563;
+                border-left: none;
+                border-top: none;
+                border-bottom: none;
+                box-shadow: none;
+                z-index: 1000;
+            }
+            #ui-container.open { left: 0; }
+            #ui-container.open ~ #overlay { display: block; }
+            #menu-toggle { display: block; }
+        }
+    </style>
+</head>
+<body>
+    <button id="menu-toggle">☰</button>
+    <div id="ui-container"></div>
+    <div id="overlay"></div>
+    <div id="info"></div>
+    <div id="tooltip"></div>
+    <div id="loader">
+        <div id="progress-container">
+            <div id="progress-bar-wrapper"><div id="progress-bar" style="width: 0%;"></div></div>
+            <span id="progress-text">Loading... 0%</span>
+        </div>
+    </div>
+
+    <script type="importmap">
+    { "imports": { "three": "https://unpkg.com/three@0.160.0/build/three.module.js", "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/" } }
+    </script>
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+        let camera, scene, renderer, controls, mixer, clock;
+        const infoElement = document.getElementById('info');
+        const uiContainer = document.getElementById('ui-container');
+        const tooltip = document.getElementById('tooltip');
+        const loaderElement = document.getElementById('loader');
+        const progressTextElement = document.getElementById('progress-text');
+        const progressBarElement = document.getElementById('progress-bar');
+        const originalMaterials = new Map();
+        
+        let allMeshes = [], selectableObjects = [], selectedObject = null;
+        let actions = {};
+        let isPlaying = false;
+        let duration = 0;
+        let wasPlayingBeforeScrub = false;
+        let isScrubbing = false;
+
+        const highlightMaterial = new THREE.MeshStandardMaterial({ emissive: 'yellow', emissiveIntensity: 0.5, color: 'yellow' });
+        const fadedMaterial = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 0.8, metalness: 0.2, transparent: true, opacity: 0.2 });
+        
+        function onScrubberStart() {
+            isScrubbing = true;
+            wasPlayingBeforeScrub = isPlaying;
+            if (isPlaying) { toggleAllPlayPause(); }
+            Object.values(actions).forEach(action => { if (action) { action.paused = false; } });
+        }
+
+        function onScrubberInput(e) {
+            const t = parseFloat(e.currentTarget.value) * duration;
+            if (mixer) {
+                Object.values(actions).forEach(action => {
+                    if (action) {
+                        action.paused = false;
+                        action.play();
+                    }
+                });
+                mixer.setTime(t);
+                if (!isPlaying) {
+                    Object.values(actions).forEach(action => {
+                        if (action) action.paused = true;
+                    });
+                }
+            }
+            updateTimeDisplay(t);
+        }
+
+        function onScrubberEnd() {
+            if (isScrubbing) {
+                isScrubbing = false;
+                if (wasPlayingBeforeScrub) { toggleAllPlayPause(); } 
+                else { Object.values(actions).forEach(action => { action.paused = true; }); }
+            }
+        }
+
+        init();
+        animate();
+
+        function centerViewOnSelected() {
+            if (!selectedObject) return;
+            controls.target.copy(new THREE.Box3().setFromObject(selectedObject).getCenter(new THREE.Vector3()));
+            controls.update();
+        }
+
+        function init() {
+            clock = new THREE.Clock();
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            document.body.appendChild(renderer.domElement);
+            scene = new THREE.Scene();
+            camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(0, 1.5, 4);
+            const environment = new RoomEnvironment(renderer);
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            scene.environment = pmremGenerator.fromScene(environment).texture;
+            scene.background = new THREE.Color('#111827');
+            environment.dispose(); pmremGenerator.dispose();
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.target.set(0, 1, 0);
+
+            new GLTFLoader().load("./glb/GJ_TopCoverA.glb", (gltf) => {
+                const model = gltf.scene;
+                const box = new THREE.Box3().setFromObject(model);
+                const center = box.getCenter(new THREE.Vector3());
+                const size = box.getSize(new THREE.Vector3());
+                model.position.sub(center);
+                scene.add(model);
+                
+                const fov = camera.fov * (Math.PI / 180);
+                const tanFov = Math.tan(fov / 2);
+                const distToFitHeight = size.y / (2 * tanFov);
+                const distToFitWidth = size.x / (2 * tanFov * camera.aspect);
+                const distance = Math.max(distToFitHeight, distToFitWidth);
+                camera.position.set(0, 0, distance + size.z / 2);
+                camera.lookAt(0, 0, 0);
+                controls.target.set(0, 0, 0);
+                controls.update();
+                
+                if(infoElement) infoElement.textContent = 'Controls: Orbit (left-click), Zoom (scroll), Pan (right-click)';
+                if(loaderElement) loaderElement.style.display = 'none';
+                setupUI(gltf);
+            }, (xhr) => {
+                if (xhr.total > 0) {
+                    const percentage = (xhr.loaded / xhr.total) * 100;
+                    const roundedPercentage = Math.round(percentage);
+                    if(progressTextElement) progressTextElement.textContent = 'Loading... ' + roundedPercentage + '%';
+                    if(progressBarElement) progressBarElement.style.width = roundedPercentage + '%';
+                }
+            }, (error) => {
+                console.error('An error occurred loading the model:', error);
+                if(infoElement) infoElement.textContent = 'Error: Could not load model.';
+                if(loaderElement) loaderElement.style.display = 'none';
+            });
+            
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('pointerout', () => { document.body.style.cursor = 'auto'; tooltip.style.display = 'none'; });
+            
+            const menuToggle = document.getElementById('menu-toggle');
+            const overlay = document.getElementById('overlay');
+            if (menuToggle && uiContainer) {
+                menuToggle.addEventListener('click', (e) => { e.stopPropagation(); uiContainer.classList.toggle('open'); });
+            }
+            if (overlay) {
+                overlay.addEventListener('click', () => uiContainer.classList.remove('open'));
+            }
+        }
+
+        function setupUI(gltf) {
+            allMeshes = [];
+            gltf.scene.traverse(child => { 
+                if (child.isMesh) { 
+                    allMeshes.push(child); 
+                    originalMaterials.set(child.uuid, child.material); 
+                } 
+            });
+            selectableObjects = gltf.scene.children.filter(child => child.visible && (child.isMesh || child.isGroup));
+
+            let uiGenerated = false;
+            const hasAnimations = gltf.animations && gltf.animations.length > 0;
+
+            if (hasAnimations) {
+                uiGenerated = true;
+                mixer = new THREE.AnimationMixer(gltf.scene);
+                gltf.animations.forEach(clip => { actions[clip.name] = mixer.clipAction(clip); });
+                duration = gltf.animations.reduce((max, clip) => Math.max(max, clip.duration), 0);
+                Object.values(actions).forEach(action => { action.reset().play(); action.paused = true; });
+                const animHeader = document.createElement('h2');
+                animHeader.textContent = 'Animations';
+                uiContainer.appendChild(animHeader);
+                const playPauseButton = document.createElement('button');
+                playPauseButton.id = 'play-pause-button';
+                playPauseButton.textContent = 'Play All';
+                playPauseButton.className = 'control-button';
+                playPauseButton.onclick = toggleAllPlayPause;
+                uiContainer.appendChild(playPauseButton);
+                const scrubberContainer = document.createElement('div');
+                scrubberContainer.style.cssText = 'display: flex; align-items: center; gap: 8px; margin-top: 0.5rem; flex-wrap: wrap;';
+                const scrubber = document.createElement('input');
+                scrubber.id = 'scrubber';
+                scrubber.type = 'range';
+                scrubber.min = '0';
+                scrubber.max = '1';
+                scrubber.step = '0.001';
+                scrubber.value = '0';
+                scrubber.style.flexGrow = '1';
+                scrubber.style.cursor = 'pointer';
+                scrubber.addEventListener('mousedown', onScrubberStart);
+                scrubber.addEventListener('touchstart', onScrubberStart, { passive: true });
+                scrubber.addEventListener('input', onScrubberInput);
+                scrubber.addEventListener('mouseup', onScrubberEnd);
+                scrubber.addEventListener('touchend', onScrubberEnd);
+                scrubber.addEventListener('mouseleave', onScrubberEnd);
+                scrubberContainer.appendChild(scrubber);
+                // Beautiful SCADA Loop/Once Dropdown Selector
+                const loopSelector = document.createElement('select');
+                loopSelector.id = 'loop-selector';
+                loopSelector.style.cssText = 'width: 100%; margin-top: 0.5rem; padding: 0.5rem; background-color: #374151; color: #d1d5db; border: 1px solid #4b5563; border-radius: 0.375rem; font-size: 0.875rem; text-align: center; cursor: pointer;';
+                loopSelector.innerHTML = `
+                    <option value="loop">循環播放 (Loop)</option>
+                    <option value="once">單次播放 (Once)</option>
+                `;
+                loopSelector.onchange = (e) => {
+                    const mode = e.target.value;
+                    Object.values(actions).forEach(action => {
+                        if (action) {
+                            action.clampWhenFinished = (mode === 'once');
+                            action.setLoop(mode === 'once' ? THREE.LoopOnce : THREE.LoopRepeat, mode === 'once' ? 1 : Infinity);
+                        }
+                    });
+                };
+                scrubberContainer.appendChild(loopSelector);
+
+                const timeDisplay = document.createElement('span');
+                timeDisplay.id = 'time-display';
+                timeDisplay.style.cssText = 'font-family: monospace; font-size: 0.75rem; white-space: nowrap; color: #9ca3af; width: 100%; text-align: right; margin-top: 4px;';
+                scrubberContainer.appendChild(timeDisplay);
+                uiContainer.appendChild(scrubberContainer);
+                updateTimeDisplay(0);
+            }
+
+            if (selectableObjects.length > 1) {
+                uiGenerated = true;
+                const objectsHeader = document.createElement('h2');
+                if (hasAnimations) { objectsHeader.style.marginTop = '1rem'; }
+                objectsHeader.textContent = 'Objects';
+                uiContainer.appendChild(objectsHeader);
+                
+                const select = document.createElement('select');
+                select.id = 'object-selector';
+                select.innerHTML = '<option value="">-- Select an Object --</option>';
+                selectableObjects.forEach((obj, index) => {
+                    const option = document.createElement('option');
+                    option.value = obj.uuid;
+                    option.textContent = obj.name || 'Object ' + (index + 1);
+                    select.appendChild(option);
+                });
+                select.onchange = (e) => {
+                    const objectToSelect = e.target.value ? selectableObjects.find(m => m.uuid === e.target.value) : null;
+                    selectObject(objectToSelect);
+                };
+                uiContainer.appendChild(select);
+                
+                const sceneHeader = document.createElement('h2'); sceneHeader.style.marginTop = '1rem'; sceneHeader.textContent = 'Scene'; uiContainer.appendChild(sceneHeader);
+                const centerButton = document.createElement('button'); centerButton.id = 'center-view-button'; centerButton.textContent = 'Center on selected';
+                centerButton.className = 'control-button'; centerButton.disabled = true; centerButton.onclick = centerViewOnSelected;
+                uiContainer.appendChild(centerButton);
+
+                const bgColorControl = document.createElement('div');
+                bgColorControl.style.cssText = 'display: flex; justify-content: space-between; align-items: center; width: 100%; padding: 0.5rem 0.75rem; margin-top: 0.5rem; background-color: #374151; color: #d1d5db; border: 1px solid #4b5563; border-radius: 0.375rem; font-size: 0.875rem; box-sizing: border-box;';
+                const bgColorLabel = document.createElement('label');
+                bgColorLabel.textContent = 'Background';
+                const bgColorInput = document.createElement('input');
+                bgColorInput.type = 'color';
+                bgColorInput.value = '#111827';
+                bgColorInput.style.cssText = 'background-color: transparent; border: 1px solid #4b5563; border-radius: 4px; cursor: pointer; height: 28px; width: 40px; padding: 2px;';
+                bgColorInput.ariaLabel = 'Select background color';
+                bgColorInput.addEventListener('input', (e) => {
+                    scene.background = new THREE.Color(e.target.value);
+                });
+                bgColorControl.appendChild(bgColorLabel);
+                bgColorControl.appendChild(bgColorInput);
+                uiContainer.appendChild(bgColorControl);
+            }
+            if (!uiGenerated) {
+                const header = document.createElement('h2'); header.textContent = 'Info';
+                const message = document.createElement('p'); message.textContent = 'No selectable objects or animations.'; message.style.cssText = 'color: #d1d5db; font-size: 0.875rem;';
+                uiContainer.appendChild(header); uiContainer.appendChild(message);
+            }
+        }
+
+        function selectObject(objectToSelect) {
+            const isDeselecting = selectedObject === objectToSelect;
+            selectedObject = isDeselecting ? null : objectToSelect;
+
+            const dropdown = document.getElementById('object-selector');
+            if(dropdown) dropdown.value = selectedObject ? selectedObject.uuid : '';
+
+            updateObjectMaterials();
+            const centerButton = document.getElementById('center-view-button'); if (centerButton) { centerButton.disabled = !selectedObject; }
+        }
+        
+        function updateObjectMaterials() {
+            const selectedMeshUuids = new Set();
+            if (selectedObject) {
+                selectedObject.traverse(child => {
+                    if (child.isMesh) selectedMeshUuids.add(child.uuid);
+                });
+            }
+
+            allMeshes.forEach(mesh => {
+                const isSelected = selectedMeshUuids.has(mesh.uuid);
+                const originalMat = originalMaterials.get(mesh.uuid);
+
+                if (selectedObject) { // Focus mode
+                    const targetMaterial = isSelected ? highlightMaterial : fadedMaterial;
+                    if (Array.isArray(originalMat)) {
+                        mesh.material = new Array(originalMat.length).fill(targetMaterial);
+                    } else {
+                        mesh.material = targetMaterial;
+                    }
+                } else { // Normal mode (restore original)
+                    mesh.material = originalMat;
+                }
+            });
+        }
+
+        function onCanvasClick(event) {
+            const intersect = getIntersect(event);
+            if (intersect) {
+                let clickedMesh = intersect.object;
+                let selectableAncestor = null;
+                while (clickedMesh) {
+                    if (selectableObjects.includes(clickedMesh)) {
+                        selectableAncestor = clickedMesh;
+                        break;
+                    }
+                    clickedMesh = clickedMesh.parent;
+                }
+                if (selectableAncestor) {
+                    selectObject(selectableAncestor === selectedObject ? null : selectableAncestor);
+                } else {
+                    selectObject(null);
+                }
+            } else if (selectedObject) {
+                selectObject(null);
+            }
+        }
+
+        function onPointerMove(event) {
+            const intersect = getIntersect(event);
+            let selectableAncestor = null;
+            if (intersect) {
+                let hoveredMesh = intersect.object;
+                while(hoveredMesh) {
+                    if (selectableObjects.includes(hoveredMesh)) {
+                        selectableAncestor = hoveredMesh;
+                        break;
+                    }
+                    hoveredMesh = hoveredMesh.parent;
+                }
+            }
+            if (selectableAncestor) {
+                document.body.style.cursor = 'pointer';
+                tooltip.textContent = selectableAncestor.name || 'Object ' + (selectableObjects.indexOf(selectableAncestor) + 1);
+                tooltip.style.left = event.clientX + 'px'; tooltip.style.top = event.clientY + 'px'; tooltip.style.display = 'block';
+            } else { document.body.style.cursor = 'auto'; tooltip.style.display = 'none'; }
+        }
+
+        function getIntersect(event) {
+            const rect = renderer.domElement.getBoundingClientRect(); const pointer = new THREE.Vector2();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1; pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            const raycaster = new THREE.Raycaster(); raycaster.setFromCamera(pointer, camera);
+            return raycaster.intersectObjects(allMeshes)[0] || null;
+        }
+
+        function toggleAllPlayPause() {
+            isPlaying = !isPlaying; 
+            if (isPlaying) {
+                const loopSelector = document.getElementById('loop-selector');
+                const isLoop = !loopSelector || loopSelector.value === 'loop';
+                if (!isLoop && mixer && mixer.time >= duration - 0.01) {
+                    mixer.time = 0;
+                    Object.values(actions).forEach(action => {
+                        if (action) action.reset().play();
+                    });
+                }
+            }
+            Object.values(actions).forEach(action => { if (action) action.paused = !isPlaying; });
+            const btn = document.getElementById('play-pause-button'); if (btn) btn.textContent = isPlaying ? 'Pause All' : 'Play All';
+        }
+        function updateTimeDisplay(currentTime) {
+            const timeDisplay = document.getElementById('time-display'); if(timeDisplay) timeDisplay.textContent = currentTime.toFixed(1) + 's / ' + duration.toFixed(1) + 's';
+        }
+        function onWindowResize() { camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix(); renderer.setSize(window.innerWidth, window.innerHeight); }
+        function animate() {
+            requestAnimationFrame(animate); const delta = clock.getDelta();
+            if (selectedObject) { highlightMaterial.emissiveIntensity = Math.sin(clock.getElapsedTime() * 5) * 0.5 + 1.0; }
+            if (mixer) {
+                if (!isScrubbing) {
+                    mixer.update(delta);
+                }
+                if (duration > 0 && isPlaying) {
+                    const loopSelector = document.getElementById('loop-selector');
+                    const isLoop = !loopSelector || loopSelector.value === 'loop';
+                    if (mixer.time >= duration) {
+                        if (isLoop) {
+                            mixer.setTime(0);
+                        } else {
+                            mixer.setTime(duration);
+                            toggleAllPlayPause(); // Halts at the end cleanly
+                        }
+                    }
+                    const scrubber = document.getElementById('scrubber');
+                    if (scrubber && document.activeElement !== scrubber) { scrubber.value = mixer.time / duration; }
+                    updateTimeDisplay(mixer.time);
+                }
+            }
+            controls.update(); renderer.render(scene, camera);
+        }
+    </script>
+</body>
+</html>
