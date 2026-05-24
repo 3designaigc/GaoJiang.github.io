@@ -959,14 +959,6 @@
         </button>
       </div>
 
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <span class="hud-label">PiP 視窗</span>
-        <input type="checkbox" id="togglePip" checked>
-        <label for="togglePip" class="switch-label"></label>
-      </div>
-
       <div class="control-group">
         <span class="hud-label">鎖定對齊</span>
         <input type="checkbox" id="clickThrough">
@@ -989,57 +981,12 @@
         </div>
       </div>
 
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="btn-size-sm" title="小尺寸 (240×160)">
-          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-md" title="預設中尺寸 (380×250)">
-          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-lg" title="大尺寸 (520×350)">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-full" title="劇院滿畫面">
-          <svg viewBox="0 0 24 24"><path d="M2 4h20v16H2z"/></svg>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="pinTL" title="對齊左上 (↖)">
-          <svg viewBox="0 0 24 24"><path d="M19 19L5 5M5 5h8M5 5v8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinTR" title="對齊右上 (↗)">
-          <svg viewBox="0 0 24 24"><path d="M5 19L19 5M19 5h-8M19 5v8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinBL" title="對齊左下 (↙)">
-          <svg viewBox="0 0 24 24"><path d="M19 5L5 19M5 19h8M5 19v-8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinBR" title="對齊右下 (↘)">
-          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 19h-8M19 19v-8"/></svg>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="toggleFS" title="全螢幕模式 (F)">
-          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
-        </button>
-      </div>
     </div>
   </header>
 
   <!-- DRAGGABLE & RESIZABLE PIP WINDOW -->
   <article id="pip">
     <iframe id="pipFrame" src="01A0300L.html" allow="xr; autoplay; fullscreen"></iframe>
-    <button id="exitFSBtn" class="exit-fs-btn" title="切回視窗模式">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M4 14h6v6m10-10h-6V4m-9 15l6-6M19 5l-6 6"/></svg>
-      <span>還原視窗</span>
-    </button>
     <div class="size-handle" id="pipResizeHandle"></div>
   </article>
 
@@ -1333,11 +1280,6 @@
     showToast("相機與動畫已重設");
   });
 
-  document.getElementById("togglePip").addEventListener("change", (e) => {
-    pipWindow.style.opacity = e.target.checked ? "1" : "0";
-    pipWindow.style.pointerEvents = e.target.checked ? "auto" : "none";
-  });
-
   const materialSelect = document.getElementById("materialModeSelect");
   materialSelect.value = currentMaterialMode;
   materialSelect.addEventListener("change", (e) => {
@@ -1355,21 +1297,6 @@
           obj.material.opacity = val / 100;
         }
       });
-    }
-  });
-
-  // Selection events
-  const selectBox = document.getElementById("srcSel");
-  selectBox.addEventListener("change", (e) => {
-    const val = e.target.value;
-    selectComponent(val);
-    try {
-      window.parent.postMessage({
-        type: "forklift_selected_object",
-        objectName: val
-      }, "*");
-    } catch(err) {
-      console.warn("postMessage failed:", err);
     }
   });
 
@@ -1732,8 +1659,6 @@
       else item.classList.remove("active");
     });
     
-    selectBox.value = name;
-    
     let targetMesh = null;
     currentModel.traverse(obj => {
       if (obj.isMesh && obj.name === name) {
@@ -1920,48 +1845,9 @@
   function setupPipControls() {
     const dragShield = document.getElementById("dragShield");
     
-    const pin = (align) => {
-      pipWindow.style.left = "auto";
-      pipWindow.style.right = "auto";
-      pipWindow.style.top = "auto";
-      pipWindow.style.bottom = "auto";
-      if (align === "TL") { pipWindow.style.left = varPad(); pipWindow.style.top = varTop(); }
-      if (align === "TR") { pipWindow.style.right = varPad(); pipWindow.style.top = varTop(); }
-      if (align === "BL") { pipWindow.style.left = varPad(); pipWindow.style.bottom = varPad(); }
-      if (align === "BR") { pipWindow.style.right = varPad(); pipWindow.style.bottom = varPad(); }
-      showToast("PiP 已定位至 " + align);
-    };
-
-    const varPad = () => getComputedStyle(document.documentElement).getPropertyValue('--pad').trim();
-    const varTop = () => `calc(${varPad()} + 76px + 12px)`;
-
-    document.getElementById("pinTL").addEventListener("click", () => pin("TL"));
-    document.getElementById("pinTR").addEventListener("click", () => pin("TR"));
-    document.getElementById("pinBL").addEventListener("click", () => pin("BL"));
-    document.getElementById("pinBR").addEventListener("click", () => pin("BR"));
-
-    const setPipSize = (w, h) => {
-      pipWindow.classList.remove("fullscreen");
-      pipWindow.style.width = w + "px";
-      pipWindow.style.height = h + "px";
-    };
-
-    document.getElementById("btn-size-sm").addEventListener("click", () => setPipSize(240, 160));
-    document.getElementById("btn-size-md").addEventListener("click", () => setPipSize(380, 250));
-    document.getElementById("btn-size-lg").addEventListener("click", () => setPipSize(520, 350));
-
-    document.getElementById("btn-size-full").addEventListener("click", () => {
-      pipWindow.classList.add("fullscreen");
-    });
-
-    document.getElementById("exitFSBtn").addEventListener("click", () => {
-      pipWindow.classList.remove("fullscreen");
-      setPipSize(380, 250);
-    });
-
     // Drag: iframe absorbs events, so only trigger from pip border/non-iframe area
     pipWindow.addEventListener("mousedown", (e) => {
-      if (e.target.closest('#exitFSBtn, #pipResizeHandle') || e.target.tagName === 'IFRAME') return;
+      if (e.target.closest('#pipResizeHandle') || e.target.tagName === 'IFRAME') return;
       if (pipWindow.classList.contains("fullscreen")) return;
       isDragging = true;
       startX = e.clientX;

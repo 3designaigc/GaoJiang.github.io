@@ -12,8 +12,6 @@
   <style>
     :root {
       --pad: 16px;
-      --pip-w: 380px;
-      --pip-h: 250px;
       --panel-h: 76px;
       
       --bg-obsidian: #060814;
@@ -427,98 +425,15 @@
       display: block;
     }
 
-    #pip {
-      position: fixed;
-      right: var(--pad);
-      top: calc(var(--pad) + var(--panel-h) + 12px);
-      width: var(--pip-w);
-      height: var(--pip-h);
-      background: rgba(8, 10, 22, 0.82);
-      backdrop-filter: blur(25px);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      box-shadow: 
-        0 25px 60px -10px rgba(0, 0, 0, 0.6),
-        0 0 25px rgba(139, 92, 246, 0.1),
-        inset 0 0 15px rgba(255, 255, 255, 0.03);
-      overflow: hidden;
-      z-index: 1000;
-      transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
-    }
-    #pip:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 
-        0 30px 65px -10px rgba(0, 0, 0, 0.7),
-        0 0 30px rgba(139, 92, 246, 0.2);
-    }
-    #pipCanvas {
-      width: 100%;
-      height: 100%;
-      display: block;
-      border-radius: inherit;
-      background: radial-gradient(circle at center, #1e1b4b 0%, #030712 100%);
-    }
 
-    #pip.fullscreen {
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      border-radius: 0 !important;
-      border: 0 !important;
-      z-index: 3500;
-    }
 
-    .exit-fs-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      background: rgba(10, 15, 30, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(139, 92, 246, 0.4);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-family: var(--font-family);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: all 0.2s ease;
-      z-index: 100;
-    }
-    .exit-fs-btn:hover {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
-    }
-    #pip.fullscreen .exit-fs-btn {
-      display: flex;
-    }
 
-    .size-handle {
-      position: absolute;
-      right: 4px;
-      bottom: 4px;
-      width: 22px;
-      height: 22px;
-      cursor: nwse-resize;
-      background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
-      border-radius: 0 0 18px 0;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-      z-index: 10;
-    }
-    .size-handle:hover {
-      opacity: 1;
-    }
+
+
+
+
+
+
 
     .toast {
       position: fixed;
@@ -606,8 +521,6 @@
     @media (max-width: 768px) {
       :root {
         --panel-h: 60px;
-        --pip-w: 240px;
-        --pip-h: 160px;
       }
       
       .hud-panel {
@@ -658,12 +571,17 @@
         box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
       }
       
-      .telemetry-hud {
-        display: none !important; /* Hide telemetry data for clean mobile viewport */
-      }
-      
       .sidebar-drawer {
         width: 260px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .telemetry-hud {
+        display: none !important;
+      }
+      .hud-center {
+        display: none !important;
       }
     }
 
@@ -787,47 +705,15 @@
     </select>
   </div>
 
-  <!-- INVISIBLE SHIELD OVER PIP DURING RESIZE -->
-  <div id="dragShield" class="drag-shield"></div>
-
   <!-- FLOATING TOAST -->
   <div id="toast" class="toast">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
     <span id="toast-text">Engine Online</span>
   </div>
 
-  <!-- SIDEBAR ASSEMBLY COMPONENT DRAWER -->
-  <div id="drawerOverlay" class="drawer-overlay"></div>
-  <aside id="sidebarDrawer" class="sidebar-drawer">
-    <div class="drawer-header">
-      <div class="drawer-title">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
-        <span>智慧組立節點選單</span>
-      </div>
-      <button class="icon-btn" id="btn-close-drawer" title="關閉">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="drawer-content" id="drawer-assemblies">
-      <div class="assembly-item active" data-name="導角18">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">導角18</span>
-            <span class="assembly-file">智慧零件編號: # 1</span>
-          </div>
-        </div>
-    </div>
-  </aside>
-
   <!-- TOP SCADA CONTROL HEADER (HUD PANEL) -->
   <header class="hud-panel" id="hudPanel">
     <div class="hud-left">
-      <button class="drawer-toggle" id="btn-open-drawer" title="開啟智慧節點選單">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <a href="../index.html" class="icon-btn" title="回到首頁" style="margin-left: 4px;">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </a>
       <div class="brand-block">
         <span class="brand-title">01A0300R</span>
         <span class="brand-subtitle">SCADA 遙測控制台</span>
@@ -835,19 +721,6 @@
     </div>
 
     <div class="hud-center">
-      <div class="control-group highlight">
-        <span class="hud-label">詳細零件</span>
-        <select id="srcSel">
-          <option value="導角18" selected>導角18</option>
-        </select>
-        
-        <button class="icon-btn" id="reload" title="重設相機與動畫">
-          <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
       <div class="control-group">
         <span class="hud-label">材質模式</span>
         <select id="materialModeSelect" style="min-width: 130px;">
@@ -874,89 +747,14 @@
         </button>
       </div>
 
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <span class="hud-label">PiP 視窗</span>
-        <input type="checkbox" id="togglePip" checked>
-        <label for="togglePip" class="switch-label"></label>
-      </div>
-
       <div class="control-group">
         <span class="hud-label">鎖定對齊</span>
         <input type="checkbox" id="clickThrough">
         <label for="clickThrough" class="switch-label"></label>
       </div>
 
-      <div class="control-group">
-        <span class="hud-label">點擊同步</span>
-        <input type="checkbox" id="autoSwitch" checked>
-        <label for="autoSwitch" class="switch-label"></label>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <span class="hud-label">透明度</span>
-        <div class="slider-container">
-          <input type="range" id="opacitySlider" min="20" max="100" value="100">
-          <span class="slider-val" id="opv">100%</span>
-        </div>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="btn-size-sm" title="小尺寸 (240×160)">
-          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-md" title="預設中尺寸 (380×250)">
-          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-lg" title="大尺寸 (520×350)">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="btn-size-full" title="劇院滿畫面">
-          <svg viewBox="0 0 24 24"><path d="M2 4h20v16H2z"/></svg>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="pinTL" title="對齊左上 (↖)">
-          <svg viewBox="0 0 24 24"><path d="M19 19L5 5M5 5h8M5 5v8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinTR" title="對齊右上 (↗)">
-          <svg viewBox="0 0 24 24"><path d="M5 19L19 5M19 5h-8M19 5v8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinBL" title="對齊左下 (↙)">
-          <svg viewBox="0 0 24 24"><path d="M19 5L5 19M5 19h8M5 19v-8"/></svg>
-        </button>
-        <button class="icon-btn size-sm" id="pinBR" title="對齊右下 (↘)">
-          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 19h-8M19 19v-8"/></svg>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="toggleFS" title="全螢幕模式 (F)">
-          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
-        </button>
-      </div>
     </div>
   </header>
-
-  <!-- DRAGGABLE & RESIZABLE PIP WINDOW -->
-  <article id="pip">
-    <canvas id="pipCanvas"></canvas>
-    <button id="exitFSBtn" class="exit-fs-btn" title="切回視窗模式">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:6px;"><path d="M4 14h6v6m10-10h-6V4m-9 15l6-6M19 5l-6 6"/></svg>
-      <span>還原視窗</span>
-    </button>
-    <div class="size-handle" id="pipResizeHandle"></div>
-  </article>
 
   <script type="importmap">
   {
@@ -987,16 +785,11 @@
   let animDuration = 0;
   let isScrubbing = false;
 
-  let pipScene, pipCamera, pipRenderer, pipControls;
-  let pipModelCopy = null;
-
   let currentMaterialMode = START_MATERIAL_MODE;
   let lastFpsTime = 0;
   let frameCount = 0;
 
   const mainCanvas = document.getElementById("mainCanvas");
-  const pipCanvas = document.getElementById("pipCanvas");
-  const pipWindow = document.getElementById("pip");
   const toast = document.getElementById("toast");
   const toastText = document.getElementById("toast-text");
   
@@ -1019,19 +812,6 @@
   if(HIGH_GLB_URL && HIGH_MODE === "auto"){
     setTimeout(()=>loadHighModel(), 500);
   }
-
-  // Setup HUD and Event Listeners
-  document.getElementById("btn-open-drawer").addEventListener("click", () => {
-    document.getElementById("sidebarDrawer").classList.add("open");
-    document.getElementById("drawerOverlay").classList.add("open");
-  });
-  
-  const closeDrawer = () => {
-    document.getElementById("sidebarDrawer").classList.remove("open");
-    document.getElementById("drawerOverlay").classList.remove("open");
-  };
-  document.getElementById("btn-close-drawer").addEventListener("click", closeDrawer);
-  document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
 
   const animSelect = document.getElementById("animationLoopSelect");
   
@@ -1199,43 +979,6 @@
     });
   }
 
-  document.getElementById("reload").addEventListener("click", () => {
-    fitCameraToObject(currentModel);
-    if (actions.length > 0) {
-      updatePlayPauseUI(true);
-      if (mixer) mixer.time = 0;
-      
-      const dropdown = document.getElementById("animationSelect");
-      if (dropdown && dropdown.value === "all") {
-        actions.forEach(action => {
-          action.paused = false;
-          action.reset().play();
-        });
-      } else if (dropdown && dropdown.value !== "") {
-        const idx = parseInt(dropdown.value);
-        actions.forEach((action, i) => {
-          if (i === idx) {
-            action.paused = false;
-            action.reset().play();
-          } else {
-            action.stop();
-          }
-        });
-      } else {
-        actions.forEach(action => {
-          action.paused = false;
-          action.reset().play();
-        });
-      }
-    }
-    showToast("相機與動畫已重設");
-  });
-
-  document.getElementById("togglePip").addEventListener("change", (e) => {
-    pipWindow.style.opacity = e.target.checked ? "1" : "0";
-    pipWindow.style.pointerEvents = e.target.checked ? "auto" : "none";
-  });
-
   const materialSelect = document.getElementById("materialModeSelect");
   materialSelect.value = currentMaterialMode;
   materialSelect.addEventListener("change", (e) => {
@@ -1243,39 +986,10 @@
     showToast("材質渲染模式已切換為: " + (e.target.value === "clay-outline" ? "白模加線條" : "原始 PBR 材質"));
   });
 
-  document.getElementById("opacitySlider").addEventListener("input", (e) => {
-    const val = e.target.value;
-    document.getElementById("opv").textContent = val + "%";
-    if (currentModel) {
-      currentModel.traverse(obj => {
-        if (obj.isMesh) {
-          obj.material.transparent = true;
-          obj.material.opacity = val / 100;
-        }
-      });
-    }
-  });
-
-  // Selection events
-  const selectBox = document.getElementById("srcSel");
-  selectBox.addEventListener("change", (e) => {
-    const val = e.target.value;
-    selectComponent(val);
-    try {
-      window.parent.postMessage({
-        type: "forklift_selected_object",
-        objectName: val
-      }, "*");
-    } catch(err) {
-      console.warn("postMessage failed:", err);
-    }
-  });
-
   document.querySelectorAll(".assembly-item").forEach(item => {
     item.addEventListener("click", () => {
       const name = item.getAttribute("data-name");
       selectComponent(name);
-      closeDrawer();
       try {
         window.parent.postMessage({
           type: "forklift_selected_object",
@@ -1312,28 +1026,8 @@
     d2.position.set(-5,-8,-6);
     scene.add(d2);
 
-    // PIP SCENE
-    pipScene = new THREE.Scene();
-    pipScene.background = new THREE.Color(0x0a0c16);
-    
-    pipCamera = new THREE.PerspectiveCamera(40, 380/250, 0.01, 1000);
-    pipCamera.position.set(0, 0, 3);
-    
-    pipRenderer = new THREE.WebGLRenderer({canvas: pipCanvas, antialias:true});
-    pipRenderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-    pipRenderer.setSize(380, 250);
-    
-    pipControls = new OrbitControls(pipCamera, pipRenderer.domElement);
-    pipControls.enableDamping = true;
-
-    pipScene.add(new THREE.HemisphereLight(0xffffff,0x334155,2.5));
-    const pd1 = new THREE.DirectionalLight(0x3b82f6,2.0);
-    pd1.position.set(3,3,3);
-    pipScene.add(pd1);
-
     loader = new GLTFLoader();
     window.addEventListener("resize", onResize);
-    setupPipControls();
 
     // Raycasting click logic for detail selector
     const raycaster = new THREE.Raycaster();
@@ -1440,11 +1134,6 @@
     controls.update();
     renderer.render(scene, camera);
 
-    if (pipModelCopy) {
-      pipControls.update();
-      pipRenderer.render(pipScene, pipCamera);
-    }
-
     // Telemetry Update FPS
     frameCount++;
     if (time > lastFpsTime + 1000) {
@@ -1482,18 +1171,6 @@
     camera.updateProjectionMatrix();
     controls.target.copy(center);
     controls.update();
-  }
-
-  function fitPipCameraToObject(object){
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const maxSize = Math.max(size.x,size.y,size.z) || 1;
-    const dist = maxSize * 2.5;
-    pipCamera.position.set(center.x + dist, center.y + dist * 0.4, center.z + dist);
-    pipCamera.lookAt(center);
-    pipControls.target.copy(center);
-    pipControls.update();
   }
 
   function setupAnimations(gltf, label){
@@ -1668,8 +1345,6 @@
       else item.classList.remove("active");
     });
     
-    selectBox.value = name;
-    
     let targetMesh = null;
     currentModel.traverse(obj => {
       if (obj.isMesh && obj.name === name) {
@@ -1679,20 +1354,6 @@
     
     if (targetMesh) {
       hudPart.textContent = name;
-      
-      if (pipModelCopy) pipScene.remove(pipModelCopy);
-      
-      pipModelCopy = targetMesh.clone();
-      
-      removeGeneratedEdges(pipModelCopy);
-      
-      pipModelCopy.position.set(0, 0, 0);
-      pipModelCopy.rotation.set(0, 0, 0);
-      
-      applyMaterialToNode(pipModelCopy, currentMaterialMode);
-      
-      pipScene.add(pipModelCopy);
-      fitPipCameraToObject(pipModelCopy);
       
       currentModel.traverse(obj => {
         if (obj.isMesh) {
@@ -1795,9 +1456,6 @@
     saveOriginalMaterials(currentModel);
     
     applyMaterialToNode(currentModel, mode);
-    if (pipModelCopy) {
-      applyMaterialToNode(pipModelCopy, mode);
-    }
   }
 
   function applyMaterialToNode(node, mode) {
@@ -1833,115 +1491,6 @@
         });
       });
     }
-  }
-
-  let isDragging = false;
-  let isResizing = false;
-  let startX, startY, startW, startH, startLeft, startTop;
-
-  function setupPipControls() {
-    const dragShield = document.getElementById("dragShield");
-    
-    const pin = (align) => {
-      pipWindow.style.left = "auto";
-      pipWindow.style.right = "auto";
-      pipWindow.style.top = "auto";
-      pipWindow.style.bottom = "auto";
-      if (align === "TL") { pipWindow.style.left = varPad(); pipWindow.style.top = varTop(); }
-      if (align === "TR") { pipWindow.style.right = varPad(); pipWindow.style.top = varTop(); }
-      if (align === "BL") { pipWindow.style.left = varPad(); pipWindow.style.bottom = varPad(); }
-      if (align === "BR") { pipWindow.style.right = varPad(); pipWindow.style.bottom = varPad(); }
-      showToast("PiP 已定位至 " + align);
-    };
-
-    const varPad = () => getComputedStyle(document.documentElement).getPropertyValue('--pad').trim();
-    const varTop = () => `calc(${varPad()} + 76px + 12px)`;
-
-    document.getElementById("pinTL").addEventListener("click", () => pin("TL"));
-    document.getElementById("pinTR").addEventListener("click", () => pin("TR"));
-    document.getElementById("pinBL").addEventListener("click", () => pin("BL"));
-    document.getElementById("pinBR").addEventListener("click", () => pin("BR"));
-
-    const setPipSize = (w, h) => {
-      pipWindow.classList.remove("fullscreen");
-      pipWindow.style.width = w + "px";
-      pipWindow.style.height = h + "px";
-      pipRenderer.setSize(w, h);
-      pipCamera.aspect = w / h;
-      pipCamera.updateProjectionMatrix();
-    };
-    
-    document.getElementById("btn-size-sm").addEventListener("click", () => setPipSize(240, 160));
-    document.getElementById("btn-size-md").addEventListener("click", () => setPipSize(380, 250));
-    document.getElementById("btn-size-lg").addEventListener("click", () => setPipSize(520, 350));
-    
-    document.getElementById("btn-size-full").addEventListener("click", () => {
-      pipWindow.classList.add("fullscreen");
-      const w = window.innerWidth;
-      const h = window.innerHeight;
-      pipRenderer.setSize(w, h);
-      pipCamera.aspect = w / h;
-      pipCamera.updateProjectionMatrix();
-    });
-
-    document.getElementById("exitFSBtn").addEventListener("click", () => {
-      pipWindow.classList.remove("fullscreen");
-      setPipSize(380, 250);
-    });
-
-    pipWindow.addEventListener("mousedown", (e) => {
-      if (e.target.closest('#exitFSBtn, #pipResizeHandle, canvas')) return;
-      if (pipWindow.classList.contains("fullscreen")) return;
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = pipWindow.getBoundingClientRect();
-      startLeft = rect.left;
-      startTop = rect.top;
-      dragShield.style.display = "block";
-      e.preventDefault();
-    });
-
-    document.getElementById("pipResizeHandle").addEventListener("mousedown", (e) => {
-      isResizing = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = pipWindow.getBoundingClientRect();
-      startW = rect.width;
-      startH = rect.height;
-      dragShield.style.display = "block";
-      dragShield.classList.add("resizing");
-      e.preventDefault();
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        pipWindow.style.right = "auto";
-        pipWindow.style.bottom = "auto";
-        pipWindow.style.left = (startLeft + dx) + "px";
-        pipWindow.style.top = (startTop + dy) + "px";
-      }
-      if (isResizing) {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        const nw = Math.max(160, startW + dx);
-        const nh = Math.max(120, startH + dy);
-        pipWindow.style.width = nw + "px";
-        pipWindow.style.height = nh + "px";
-        pipRenderer.setSize(nw, nh);
-        pipCamera.aspect = nw / nh;
-        pipCamera.updateProjectionMatrix();
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      isDragging = false;
-      isResizing = false;
-      dragShield.style.display = "none";
-      dragShield.classList.remove("resizing");
-    });
   }
 
   let toastTimer = null;
