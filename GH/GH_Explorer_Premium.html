@@ -1,14 +1,15 @@
+
 <!doctype html>
 <html lang="zh-Hant">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GH | 3D 智慧組立視覺化主控台</title>
+  <title>GH | 3D Visual Control Center</title>
   
   <!-- Premium Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&display=swap" rel="stylesheet">
   
   <style>
     :root {
@@ -33,7 +34,7 @@
       --text-secondary: #94a3b8;
       --text-dim: #64748b;
       
-      --font-family: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
+      --font-family: 'Oswald', 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
     }
 
     * {
@@ -65,7 +66,7 @@
     }
 
     /* -------------------------------------------------------------
-     * DRAG SHIELD (Crucial for smooth iframe dragging)
+     * DRAG SHIELD
      * ------------------------------------------------------------- */
     .drag-shield {
       position: fixed;
@@ -119,7 +120,6 @@
       gap: 16px;
     }
 
-    /* Hamburger Sidebar Toggle */
     .drawer-toggle {
       background: rgba(255, 255, 255, 0.05);
       border: 1px solid var(--border-color);
@@ -196,7 +196,6 @@
       letter-spacing: 0.5px;
     }
 
-    /* Custom futuristic dropdown */
     select {
       background: var(--bg-card);
       color: var(--text-primary);
@@ -220,7 +219,6 @@
       box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
     }
 
-    /* Iconic Buttons */
     .icon-btn {
       width: 34px;
       height: 34px;
@@ -241,9 +239,6 @@
       transform: translateY(-1px);
       box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
     }
-    .icon-btn:active {
-      transform: translateY(0);
-    }
     .icon-btn svg {
       width: 16px;
       height: 16px;
@@ -263,7 +258,6 @@
       height: 13px;
     }
 
-    /* Switch toggle */
     .switch-label {
       position: relative;
       width: 38px;
@@ -289,15 +283,14 @@
     input[type="checkbox"] {
       display: none;
     }
-    input[type="checkbox"]:checked + .switch-label {
-      background: var(--primary);
-    }
     input[type="checkbox"]:checked + .switch-label::after {
       left: 19px;
       background: #fff;
     }
+    input[type="checkbox"]:checked + .switch-label {
+      background: var(--primary);
+    }
 
-    /* Opacity Range Slider */
     .slider-container {
       display: flex;
       align-items: center;
@@ -322,11 +315,8 @@
       cursor: pointer;
       border: 2px solid #fff;
       box-shadow: 0 0 6px rgba(139,92,246,0.6);
-      transition: transform 0.1s;
     }
-    input[type="range"]::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
+
     .slider-val {
       font-size: 0.72rem;
       font-weight: 700;
@@ -335,7 +325,6 @@
       text-align: right;
     }
 
-    /* Tooltips */
     .tooltip {
       position: absolute;
       bottom: -32px;
@@ -351,14 +340,12 @@
       opacity: 0;
       color: #fff;
       transition: opacity 0.2s, transform 0.2s;
-      z-index: 1000;
     }
     .icon-btn:hover .tooltip {
       opacity: 1;
       transform: translateX(-50%) translateY(0);
     }
 
-    /* Divider */
     .vertical-divider {
       width: 1px;
       height: 28px;
@@ -367,7 +354,7 @@
     }
 
     /* -------------------------------------------------------------
-     * SLIDING ASSEMBLY MODULES DRAWER (Left Sidebar)
+     * SIDEBAR DRAWER
      * ------------------------------------------------------------- */
     .sidebar-drawer {
       position: fixed;
@@ -399,13 +386,9 @@
       font-size: 1.05rem;
       font-weight: 700;
       color: #fff;
-      letter-spacing: 0.5px;
       display: flex;
       align-items: center;
       gap: 10px;
-    }
-    .drawer-title svg {
-      color: var(--primary);
     }
 
     .drawer-content {
@@ -427,7 +410,6 @@
       border-radius: 10px;
       cursor: pointer;
       transition: all 0.2s ease;
-      text-align: left;
     }
     .assembly-item:hover {
       background: rgba(139, 92, 246, 0.05);
@@ -437,16 +419,6 @@
     .assembly-item.active {
       background: rgba(139, 92, 246, 0.12);
       border-color: var(--primary);
-      box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.1);
-    }
-    .assembly-item svg {
-      width: 18px;
-      height: 18px;
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-    .assembly-item.active svg {
-      color: var(--primary);
     }
     .assembly-info {
       display: flex;
@@ -460,10 +432,8 @@
     .assembly-file {
       font-size: 0.68rem;
       color: var(--text-dim);
-      margin-top: 1px;
     }
 
-    /* Drawer overlay block */
     .drawer-overlay {
       position: fixed;
       inset: 0;
@@ -489,19 +459,13 @@
       backdrop-filter: blur(25px);
       border: 1px solid var(--border-color);
       border-radius: 20px;
-      box-shadow: 
-        0 25px 60px -10px rgba(0, 0, 0, 0.6),
-        0 0 25px rgba(139, 92, 246, 0.1),
-        inset 0 0 15px rgba(255, 255, 255, 0.03);
+      box-shadow: 0 25px 60px -10px rgba(0, 0, 0, 0.6);
       overflow: hidden;
       z-index: 1000;
-      transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
+      transition: all 0.3s;
     }
     #pip:hover {
       border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 
-        0 30px 65px -10px rgba(0, 0, 0, 0.7),
-        0 0 30px rgba(139, 92, 246, 0.2);
     }
     #pip iframe {
       width: 100%;
@@ -509,10 +473,7 @@
       border: 0;
       display: block;
       border-radius: inherit;
-      background: radial-gradient(circle at center, #1e1b4b 0%, #030712 100%);
     }
-
-    /* Fullscreen PiP styling */
     #pip.fullscreen {
       top: 0 !important;
       left: 0 !important;
@@ -525,40 +486,75 @@
       z-index: 3500;
     }
 
-    /* Floating Exit Fullscreen Button */
     .exit-fs-btn {
       position: absolute;
       top: 20px;
       right: 20px;
       padding: 8px 16px;
       background: rgba(10, 15, 30, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
       border: 1px solid rgba(139, 92, 246, 0.4);
       border-radius: 8px;
       color: var(--text-primary);
-      font-family: var(--font-family);
-      font-size: 0.8rem;
-      font-weight: 600;
       cursor: pointer;
       display: none;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: all 0.2s ease;
       z-index: 100;
-    }
-    .exit-fs-btn:hover {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
     }
     #pip.fullscreen .exit-fs-btn {
       display: flex;
     }
 
-    /* Resize Handle */
+    .pip-tools {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 130;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px;
+      background: rgba(10, 15, 30, 0.78);
+      border: 1px solid rgba(139, 92, 246, 0.28);
+      border-radius: 10px;
+      backdrop-filter: blur(14px);
+      opacity: 0.86;
+      transition: opacity 0.2s;
+    }
+    #pip:hover .pip-tools,
+    #pip.fullscreen .pip-tools {
+      opacity: 1;
+    }
+    #pip.fullscreen .pip-tools {
+      top: 20px;
+      left: 20px;
+    }
+    .pip-scale-btn {
+      width: 28px;
+      height: 28px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 7px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-primary);
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: all 0.2s;
+    }
+    .pip-scale-btn:hover,
+    .pip-scale-btn.active {
+      background: var(--primary-glow);
+      border-color: var(--primary);
+      box-shadow: 0 0 10px rgba(139, 92, 246, 0.22);
+    }
+    .pip-scale-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: none;
+      stroke: currentColor;
+      stroke-width: 2;
+      stroke-linejoin: round;
+    }
+
     .size-handle {
       position: absolute;
       right: 4px;
@@ -569,52 +565,33 @@
       background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
       border-radius: 0 0 18px 0;
       opacity: 0.6;
-      transition: opacity 0.2s;
-      z-index: 10;
-    }
-    .size-handle:hover {
-      opacity: 1;
     }
 
-    /* -------------------------------------------------------------
-     * FLOATING TOASTS NOTIFICATIONS
-     * ------------------------------------------------------------- */
     .toast {
       position: fixed;
       bottom: 24px;
       left: 24px;
       background: rgba(10, 15, 30, 0.95);
       border-left: 4px solid var(--primary);
-      border-top: 1px solid var(--border-color);
-      border-right: 1px solid var(--border-color);
-      border-bottom: 1px solid var(--border-color);
       padding: 12px 20px;
       border-radius: 0 8px 8px 0;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
       z-index: 9999;
       transform: translateY(120%);
       transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      font-weight: 500;
     }
     .toast.show {
       transform: translateY(0);
     }
-    .toast svg {
-      width: 16px;
-      height: 16px;
-      color: var(--primary);
-    }
 
-    /* Spinner Animation */
     @keyframes spin {
       100% { transform: rotate(360deg); }
     }
     .spinning svg {
       animation: spin 0.8s linear infinite;
+    }
+
+    .mobile-pip-toggle {
+      display: none;
     }
 
     /* -------------------------------------------------------------
@@ -635,26 +612,35 @@
         border-radius: 12px;
       }
       
-      /* Hide secondary and cluttered HUD controls on mobile */
       .hud-center > * {
         display: none !important;
       }
       
-      /* Keep only the main selector control-group visible */
       .hud-center > .control-group.highlight {
         display: flex !important;
         width: 100%;
         justify-content: space-between;
         padding: 4px 8px;
       }
+
+      .mobile-pip-toggle {
+        display: flex !important;
+        flex: 0 0 32px;
+      }
+
+      .hud-center .hud-label {
+        display: none;
+      }
       
-      .brand-block {
-        display: none; /* Hide brand details on small screens to save space */
+      .brand-block, #selectedObjDivider, .selected-object-display {
+        display: none !important;
       }
       
       .hud-center {
         width: 100%;
         justify-content: flex-end;
+        gap: 6px;
+        min-width: 0;
       }
       
       select {
@@ -663,16 +649,30 @@
         font-size: 0.8rem;
         padding: 4px 24px 4px 8px;
       }
-      
+
+      #srcSel {
+        min-width: 104px;
+        max-width: 122px;
+      }
+
       #pip {
-        width: var(--pip-w) !important;
-        height: var(--pip-h) !important;
-        right: 8px !important;
-        bottom: 8px !important;
-        top: auto !important;
-        left: auto !important;
+        width: var(--pip-w);
+        height: var(--pip-h);
+        right: 8px;
+        bottom: 8px;
+        top: auto;
+        left: auto;
         border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+        display: none !important;
+      }
+
+      #pip.mobile-open {
+        display: block !important;
+      }
+
+      #pip.mobile-open .pip-tools {
+        opacity: 1;
+        pointer-events: auto;
       }
       
       .sidebar-drawer {
@@ -683,106 +683,101 @@
 </head>
 <body>
 
-  <!-- VIEWPORT IFRAME (Loads 3D Assembly File) -->
-  <iframe id="main" src="FFMTH.html" allow="xr; autoplay; fullscreen"></iframe>
+  <!-- VIEWPORT IFRAME -->
+  <iframe id="main" src="FFMTH.html?v=gh-clayzoom-20260527a" allow="xr; autoplay; fullscreen"></iframe>
 
-  <!-- INVISIBLE DRAG / RESIZE SHIELD OVER IFRAMES -->
   <div id="dragShield" class="drag-shield"></div>
 
   <!-- TOAST NOTIFICATION -->
   <div id="toast" class="toast">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
     <span id="toast-text">System Initialized</span>
   </div>
 
-  <!-- COLLAPSIBLE LEFT DRAWER (Assembly Modules Explorer) -->
+  <!-- COLLAPSIBLE LEFT SIDEBAR -->
   <div id="drawerOverlay" class="drawer-overlay"></div>
   <aside id="sidebarDrawer" class="sidebar-drawer">
     <div class="drawer-header">
       <div class="drawer-title">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
-        <span>智慧組立節點選單</span>
+        <span>Component Hierarchy</span>
       </div>
-      <button class="icon-btn" id="btn-close-drawer" title="關閉">
+      <button class="icon-btn" id="btn-close-drawer">
         <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
     </div>
     
     <div class="drawer-content" id="drawer-assemblies">
-      <!-- Assemblies dynamically mapped here -->
+      <!-- Mapped dynamically -->
     </div>
   </aside>
 
-  <!-- FLOATING HUD PANEL (Top Control Panel) -->
+  <!-- FLOATING SCADA HUD CONTROL HEADER -->
   <header class="hud-panel" id="hudPanel">
-    
-    <!-- LEFT HUD: Drawer & Brand -->
     <div class="hud-left">
-      <button class="drawer-toggle" id="btn-open-drawer" title="開啟組件選單">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      <button class="drawer-toggle" id="btn-open-drawer">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
-      <a href="../index.html" class="icon-btn" title="回到首頁" style="margin-left: 4px;">
+      <a href="../index.html" class="icon-btn" style="margin-left: 4px;">
         <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-        <span class="tooltip">回到首頁</span>
       </a>
       <div class="brand-block">
-        <span class="brand-title">GH</span>
-        <span class="brand-subtitle">3D Parts Center</span>
+        <span class="brand-title">GH CENTER</span>
+        <span class="brand-subtitle">3D Assemblies</span>
+      </div>
+      <div class="vertical-divider select-divider" id="selectedObjDivider" style="display:none; margin: 0 12px; height: 28px; width: 1px; background: rgba(255, 255, 255, 0.08);"></div>
+      <div class="selected-object-display" id="selectedObjDisplay" style="display:none; flex-direction: column;">
+        <span style="font-size: 0.65rem; color: var(--primary); font-weight: 700; text-transform: uppercase;">Selected Component</span>
+        <span id="selectedObjName" style="font-size: 0.85rem; color: #fff; font-weight: 700;">None</span>
       </div>
     </div>
 
-    <!-- CENTER HUD: Detail Source select, transparency, switch PiP, fullscreen -->
+    <!-- HUD Center controls -->
     <div class="hud-center">
-      
-      <!-- Source Component Selector -->
       <div class="control-group highlight">
-        <span class="hud-label">詳細零件</span>
+        <span class="hud-label">Details</span>
         <select id="srcSel">
-          <option value="01A0300L.html" selected>01A0300L 左傳動導柱組立</option>
-          <option value="01A0300R.html">01A0300R 右傳動導柱組立</option>
-          <option value="01A0500.html">01A0500 核心主動齒輪箱組立</option>
-          <option value="02A0201.html">02A0201 防護導套支撐臂組立</option>
-          <option value="02D0100.html">02D0100 球臼液壓推桿箱組立</option>
-          <option value="03A01A1.html">03A01A1 導軌精密滑塊組立</option>
-          <option value="03A0101.html">03A0101 精密導板組立</option>
-          <option value="04D0101.html">04D0101 底座配重塊組立</option>
-          <option value="05A1001.html">05A1001 上蓋密封套環組立</option>
+          <!-- Options populated dynamically -->
+          <option value="01A0100.html">01A0100</option>
+<option value="01A0300L.html">01A0300L</option>
+<option value="01A0300R.html">01A0300R</option>
+<option value="01A0500.html">01A0500</option>
+<option value="02A0201.html">02A0201</option>
+<option value="02D0100.html">02D0100</option>
+<option value="03A0101.html">03A0101</option>
+<option value="03A01A1.html">03A01A1</option>
+<option value="04D0101.html">04D0101</option>
+<option value="05A1001.html">05A1001</option>
+
         </select>
-        
-        <button class="icon-btn" id="reload" title="重新整理零件">
+        <button class="icon-btn" id="reload">
           <svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 11-9-9c2.52 0 4.93 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/></svg>
-          <span class="tooltip">重新整理零件</span>
+        </button>
+        <button class="icon-btn mobile-pip-toggle" id="mobilePipToggle" title="跳出子畫面" aria-label="跳出子畫面">
+          <svg viewBox="0 0 24 24"><rect x="3" y="5" width="13" height="10" rx="1.5"/><rect x="12" y="11" width="9" height="7" rx="1.2"/></svg>
         </button>
       </div>
 
-      <div class="vertical-divider"></div>
-
-      <!-- Display PiP toggle -->
       <div class="control-group">
-        <span class="hud-label">PiP 視窗</span>
+        <span class="hud-label">PiP View</span>
         <input type="checkbox" id="togglePip" checked>
         <label for="togglePip" class="switch-label"></label>
       </div>
 
-      <!-- Click-through penetrable toggle -->
       <div class="control-group">
-        <span class="hud-label">鎖定</span>
+        <span class="hud-label">Lock HUD</span>
         <input type="checkbox" id="clickThrough">
         <label for="clickThrough" class="switch-label"></label>
       </div>
 
-      <!-- Auto sync toggle -->
       <div class="control-group">
-        <span class="hud-label">自動點擊同步</span>
+        <span class="hud-label">Auto Sync</span>
         <input type="checkbox" id="autoSwitch" checked>
         <label for="autoSwitch" class="switch-label"></label>
       </div>
 
       <div class="vertical-divider"></div>
 
-      <!-- Opacity Controller -->
       <div class="control-group">
-        <span class="hud-label">透明度</span>
+        <span class="hud-label">Opacity</span>
         <div class="slider-container">
           <input type="range" id="opacity" min="20" max="100" value="100">
           <span class="slider-val" id="opv">100%</span>
@@ -791,88 +786,55 @@
 
       <div class="vertical-divider"></div>
 
-      <!-- Preset Size Buttons -->
       <div class="control-group">
-        <button class="icon-btn size-sm" data-size="240x160" title="小視窗">
-          <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/></svg>
-          <span class="tooltip">小尺寸 (240×160)</span>
-        </button>
-        <button class="icon-btn size-sm" data-size="380x250" title="中視窗">
-          <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>
-          <span class="tooltip">預設中尺寸 (380×250)</span>
-        </button>
-        <button class="icon-btn size-sm" data-size="520x350" title="大視窗">
-          <svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="20" rx="2.5"/></svg>
-          <span class="tooltip">大尺寸 (520×350)</span>
-        </button>
-        <button class="icon-btn size-sm" data-size="full" title="劇院極大 (滿畫面)">
-          <svg viewBox="0 0 24 24"><path d="M2 4h20v16H2z"/></svg>
-          <span class="tooltip">劇院極大 (滿畫面)</span>
-        </button>
+        <button class="icon-btn size-sm" id="pinTL">↖</button>
+        <button class="icon-btn size-sm" id="pinTR">↗</button>
+        <button class="icon-btn size-sm" id="pinBL">↙</button>
+        <button class="icon-btn size-sm" id="pinBR">↘</button>
       </div>
 
       <div class="vertical-divider"></div>
 
-      <!-- PiP Alignment Pin Buttons -->
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="pinTL" title="對齊左上 (↖)">
-          <svg viewBox="0 0 24 24"><path d="M19 19L5 5M5 5h8M5 5v8"/></svg>
-          <span class="tooltip">對齊左上 (↖)</span>
-        </button>
-        <button class="icon-btn size-sm" id="pinTR" title="對齊右上 (↗)">
-          <svg viewBox="0 0 24 24"><path d="M5 19L19 5M19 5h-8M19 5v8"/></svg>
-          <span class="tooltip">對齊右上 (↗)</span>
-        </button>
-        <button class="icon-btn size-sm" id="pinBL" title="對齊左下 (↙)">
-          <svg viewBox="0 0 24 24"><path d="M19 5L5 19M5 19h8M5 19v-8"/></svg>
-          <span class="tooltip">對齊左下 (↙)</span>
-        </button>
-        <button class="icon-btn size-sm" id="pinBR" title="對齊右下 (↘)">
-          <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 19h-8M19 19v-8"/></svg>
-          <span class="tooltip">對齊右下 (↘)</span>
-        </button>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <!-- Fullscreen Toggle Button -->
-      <div class="control-group">
-        <button class="icon-btn size-sm" id="toggleFS" title="全螢幕模式 (F)">
-          <svg viewBox="0 0 24 24"><path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/></svg>
-          <span class="tooltip" id="fs-tooltip">全螢幕零件 (F)</span>
-        </button>
-      </div>
-
+      <button class="icon-btn size-sm" id="toggleFS">FS</button>
     </div>
   </header>
 
-  <!-- DRAGGABLE & RESIZABLE PIP WINDOW -->
+  <!-- PiP WINDOW -->
   <article id="pip">
-    <iframe id="pipFrame" src="01A0300L.html" allow="xr; autoplay; fullscreen"></iframe>
-    <button id="exitFSBtn" class="exit-fs-btn" title="切回視窗模式">
-      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 14h6v6m10-10h-6V4M14 10l7-7M10 14l-7 7"/></svg>
-      <span>還原視窗</span>
-    </button>
+    <iframe id="pipFrame" src="01A0100.html?v=gh-clayzoom-20260527a" allow="xr; autoplay; fullscreen"></iframe>
+    <div class="pip-tools">
+      <button class="pip-scale-btn active" data-scale="1" title="1x" aria-label="PiP 1x">
+        <svg viewBox="0 0 24 24"><rect x="8" y="8" width="8" height="8"/></svg>
+      </button>
+      <button class="pip-scale-btn" data-scale="1.5" title="1.5x" aria-label="PiP 1.5x">
+        <svg viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12"/></svg>
+      </button>
+      <button class="pip-scale-btn" data-scale="2" title="2x" aria-label="PiP 2x">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16"/></svg>
+      </button>
+      <button class="pip-scale-btn" data-scale="full" title="Full" aria-label="PiP full">
+        <svg viewBox="0 0 24 24"><path d="M8 3H3v5"/><path d="M16 3h5v5"/><path d="M21 16v5h-5"/><path d="M8 21H3v-5"/></svg>
+      </button>
+    </div>
+    <button id="exitFSBtn" class="exit-fs-btn">Restore</button>
     <div class="size-handle" id="sizeHandle"></div>
   </article>
 
-  <!-- APP STATE CONTROLLER SCRIPTS -->
   <script>
-    // 1. Assemblies List Data Mapping
     const assembliesList = [
-      { id: 'f_main', name: 'GH 整體機械動畫組立', file: 'FFMTH.html', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
-      { id: 'lh_01', name: '01A0300L 左側傳動導柱組立', file: '01A0300L.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-      { id: 'rh_01', name: '01A0300R 右側傳動導柱組立', file: '01A0300R.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
-      { id: 'gearbox', name: '01A0500 核心主動齒輪箱組立', file: '01A0500.html', icon: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z' },
-      { id: 'arm', name: '02A0201 防護導套支撐臂組立', file: '02A0201.html', icon: 'M6 3v12M18 3v12M6 15h12M12 15V9' },
-      { id: 'hydraulic', name: '02D0100 球臼液壓推桿箱組立', file: '02D0100.html', icon: 'M6 3v18M18 3v18M6 15h12' },
-      { id: 'slider', name: '03A01A1 導軌精密滑塊組立', file: '03A01A1.html', icon: 'M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z' },
-      { id: 'guideplate', name: '03A0101 精密導板組立', file: '03A0101.html', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5' },
-      { id: 'base', name: '04D0101 底座配重塊組立', file: '04D0101.html', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6' },
-      { id: 'seal', name: '05A1001 上蓋密封套環組立', file: '05A1001.html', icon: 'M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2' }
+      { id: 'overall_main', name: 'Overall Assembly', file: 'FFMTH.html', icon: 'M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5' },
+      { id: '01a0100', name: '01A0100', file: '01A0100.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '01a0300l', name: '01A0300L', file: '01A0300L.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '01a0300r', name: '01A0300R', file: '01A0300R.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '01a0500', name: '01A0500', file: '01A0500.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '02a0201', name: '02A0201', file: '02A0201.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '02d0100', name: '02D0100', file: '02D0100.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '03a0101', name: '03A0101', file: '03A0101.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '03a01a1', name: '03A01A1', file: '03A01A1.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '04d0101', name: '04D0101', file: '04D0101.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' },
+      { id: '05a1001', name: '05A1001', file: '05A1001.html', icon: 'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z' }
     ];
 
-    // Select DOM nodes
     const mainIframe = document.getElementById('main');
     const pip = document.getElementById('pip');
     const pipFrame = document.getElementById('pipFrame');
@@ -882,70 +844,161 @@
     const toast = document.getElementById('toast');
     const toastText = document.getElementById('toast-text');
 
-    // Drawer Elements Mapping
     const btnOpenDrawer = document.getElementById('btn-open-drawer');
     const btnCloseDrawer = document.getElementById('btn-close-drawer');
     const assembliesContainer = document.getElementById('drawer-assemblies');
 
-    // HUD Inputs Mapping
     const srcSel = document.getElementById('srcSel');
     const reloadBtn = document.getElementById('reload');
     const togglePip = document.getElementById('togglePip');
+    const mobilePipToggle = document.getElementById('mobilePipToggle');
     const clickThrough = document.getElementById('clickThrough');
     const autoSwitchCheckbox = document.getElementById('autoSwitch');
     const opacitySlider = document.getElementById('opacity');
     const opv = document.getElementById('opv');
     const toggleFS = document.getElementById('toggleFS');
+    const pipScaleButtons = Array.from(document.querySelectorAll('.pip-scale-btn'));
 
-    // 3D mesh names to detailed HTML file mapping table
     const objectToFileMap = {
-      // 01A0300L 對應 01A0100 的模型 node 名稱
-      '01A0100': '01A0300L.html',
-      '01A0100_Low': '01A0300L.html',
-      '01A0100_high': '01A0300L.html',
-      '01A0100Low': '01A0300L.html',
-      '01A0300L': '01A0300L.html',
-      'FMTH01A0300L': '01A0300L.html',
+      "01A0100": "01A0100.html",
+      "01A0300L": "01A0300L.html",
+      "01A0300R": "01A0300R.html",
+      "01A0500": "01A0500.html",
+      "02A0201": "02A0201.html",
+      "02D0100": "02D0100.html",
+      "03A0101": "03A0101.html",
+      "03A01A1": "03A01A1.html",
+      "04D0101": "04D0101.html",
+      "05A1001": "05A1001.html"
+};
+    Object.assign(objectToFileMap, {
+      "FMTH01A0300L": "01A0300L.html",
+      "2A0201Low": "02A0201.html",
+      "FMTH02D0100": "02D0100.html",
+      "03AL_L": "03A0101.html",
+      "03AL_R": "03A0101.html",
+      "04D0101LLOW_R": "04D0101.html",
+      "04D0101LLOW_L": "04D0101.html",
+      "FMTH05A": "05A1001.html",
+      "05A_R": "05A1001.html",
+      "05A_L": "05A1001.html"
+    });
 
-      // 01A0300R
-      '01A0300R': '01A0300R.html',
+    const iframeCacheVersion = 'gh-clayzoom-20260527a';
+    function iframeUrl(fileName) {
+      return `${fileName}?v=${iframeCacheVersion}`;
+    }
+    const pipBaseSize = { width: 380, height: 250 };
+    let currentPipScale = '1';
 
-      // 01A0500
-      '01A0500': '01A0500.html',
-      'FMTH01A0500': '01A0500.html',
+    function setActivePipScaleButton(scale) {
+      pipScaleButtons.forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.scale === scale);
+      });
+    }
 
-      // 02A0201
-      '02A0201': '02A0201.html',
-      '2A0201Low': '02A0201.html',
+    function postPipTimelineVisibility(visible) {
+      if (!pipFrame || !pipFrame.contentWindow) return;
+      pipFrame.contentWindow.postMessage({
+        type: 'set_timeline_visibility',
+        visible
+      }, '*');
+    }
 
-      // 02D0100
-      '02D0100': '02D0100.html',
-      'FMTH02D0100': '02D0100.html',
+    function syncPipTimelineVisibility(scale = currentPipScale) {
+      postPipTimelineVisibility(!(scale === '1' || scale === '1.5'));
+    }
 
-      // 03A01A1
-      '03A01A1': '03A01A1.html',
-      '03A01A1_M': '03A01A1.html',
-      '03A01A1_L': '03A01A1.html',
-      '03A01A1_R': '03A01A1.html',
+    function isMobileViewport() {
+      return window.matchMedia('(max-width: 768px)').matches;
+    }
 
-      // 03A0101
-      '03A0101': '03A0101.html',
-      '03AL_L': '03A0101.html',
-      '03AL_R': '03A0101.html',
+    function setMobilePipOpen(open) {
+      const shouldOpen = Boolean(open);
+      pip.classList.toggle('mobile-open', shouldOpen);
+      if (mobilePipToggle) mobilePipToggle.classList.toggle('active', shouldOpen);
+      if (isMobileViewport()) {
+        togglePip.checked = shouldOpen;
+        pip.style.display = shouldOpen ? 'block' : '';
+      }
+    }
 
-      // 04D0101
-      '04D0101': '04D0101.html',
-      '04D0101LLOW_R': '04D0101.html',
-      '04D0101LLOW_L': '04D0101.html',
+    function toggleMobilePip() {
+      const shouldOpen = !pip.classList.contains('mobile-open');
+      setMobilePipOpen(shouldOpen);
+      triggerToast(shouldOpen ? '子畫面已跳出' : '子畫面已收回');
+    }
 
-      // 05A1001
-      '05A1001': '05A1001.html',
-      '05A_R': '05A1001.html',
-      '05A_L': '05A1001.html',
-      'FMTH05A': '05A1001.html'
-    };
+    function setPipScale(scale) {
+      currentPipScale = scale;
+      setActivePipScaleButton(scale);
+      syncPipTimelineVisibility(scale);
 
-    // 2. Dynamic Toast Alert Trigger
+      if (scale === 'full') {
+        pip.classList.add('fullscreen');
+        triggerToast('PiP: Full');
+        return;
+      }
+
+      pip.classList.remove('fullscreen');
+      const factor = Number(scale) || 1;
+      const maxWidth = Math.max(220, window.innerWidth - 32);
+      const maxHeight = Math.max(160, window.innerHeight - 120);
+      pip.style.width = Math.min(Math.round(pipBaseSize.width * factor), maxWidth) + 'px';
+      pip.style.height = Math.min(Math.round(pipBaseSize.height * factor), maxHeight) + 'px';
+      pip.style.left = '';
+      pip.style.top = 'calc(var(--pad) + var(--panel-h) + 12px)';
+      pip.style.right = 'var(--pad)';
+      pip.style.bottom = '';
+      triggerToast(`PiP: ${factor}x`);
+    }
+
+    function normalizeObjectName(name) {
+      return String(name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+    }
+
+    function findObjectFile(objectName) {
+      if (!objectName) return null;
+      if (objectToFileMap[objectName]) return objectToFileMap[objectName];
+      const normalizedObject = normalizeObjectName(objectName);
+      for (const key in objectToFileMap) {
+        const normalizedKey = normalizeObjectName(key);
+        if (normalizedObject.includes(normalizedKey) || normalizedKey.includes(normalizedObject)) {
+          return objectToFileMap[key];
+        }
+      }
+      return null;
+    }
+
+    function updateSelectedObjectUI(objectName) {
+      const displayContainer = document.getElementById('selectedObjDisplay');
+      const divider = document.getElementById('selectedObjDivider');
+      const nameEl = document.getElementById('selectedObjName');
+      if (!displayContainer || !nameEl) return;
+
+      if (!objectName) {
+        displayContainer.style.display = 'none';
+        if (divider) divider.style.display = 'none';
+        return;
+      }
+
+      let friendlyName = objectName;
+      let matchedFile = null;
+
+      matchedFile = findObjectFile(objectName);
+
+      if (matchedFile) {
+        const asm = assembliesList.find(a => a.file === matchedFile);
+        if (asm) {
+          friendlyName = asm.name;
+        }
+      }
+
+      nameEl.textContent = friendlyName;
+      displayContainer.style.display = 'flex';
+      if (divider) divider.style.display = 'block';
+    }
+
     function triggerToast(msg) {
       toastText.innerText = msg;
       toast.classList.add('show');
@@ -954,65 +1007,66 @@
       }, 3000);
     }
 
-    // 3. Populate Assembly Sidebar Drawer
     function setupDrawer() {
       assembliesContainer.innerHTML = '';
-      
       assembliesList.forEach(asm => {
         const div = document.createElement('div');
         div.className = `assembly-item ${asm.file === 'FFMTH.html' ? 'active' : ''}`;
-        div.dataset.file = asm.file;
-        
         div.innerHTML = `
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="${asm.icon}"/>
-          </svg>
           <div class="assembly-info">
             <span class="assembly-name">${asm.name}</span>
             <span class="assembly-file">${asm.file}</span>
           </div>
         `;
-        
         div.addEventListener('click', () => {
-          mainIframe.src = asm.file;
-          
+          mainIframe.src = iframeUrl(asm.file);
           document.querySelectorAll('.assembly-item').forEach(el => el.classList.remove('active'));
           div.classList.add('active');
-          
           closeSidebar();
-          triggerToast(`已加載模組：${asm.name}`);
+          triggerToast(`Loaded: ${asm.name}`);
+          if (asm.file === 'FFMTH.html') {
+            updateSelectedObjectUI(null);
+          } else {
+            let meshName = null;
+            for (const key in objectToFileMap) {
+              if (objectToFileMap[key] === asm.file) {
+                meshName = key;
+                break;
+              }
+            }
+            updateSelectedObjectUI(meshName || asm.file.replace('.html', ''));
+          }
         });
-        
         assembliesContainer.appendChild(div);
       });
     }
 
-    // Toggle Sidebar Drawer Methods
-    function openSidebar() {
-      sidebarDrawer.classList.add('open');
-      drawerOverlay.classList.add('open');
-    }
-    
-    function closeSidebar() {
-      sidebarDrawer.classList.remove('open');
-      drawerOverlay.classList.remove('open');
-    }
+    function openSidebar() { sidebarDrawer.classList.add('open'); drawerOverlay.classList.add('open'); }
+    function closeSidebar() { sidebarDrawer.classList.remove('open'); drawerOverlay.classList.remove('open'); }
 
     btnOpenDrawer.addEventListener('click', openSidebar);
     btnCloseDrawer.addEventListener('click', closeSidebar);
     drawerOverlay.addEventListener('click', closeSidebar);
 
-    // 4. Source Selector dropdown actions
-    const setSrc = (val) => {
-      pipFrame.src = val;
+    const setSrc = (val, isUserTriggered = false) => {
+      pipFrame.src = iframeUrl(val);
       srcSel.value = val;
-      notifyMainIframe(val);
+      if (isUserTriggered) {
+        notifyMainIframe(val);
+      }
+      let meshName = null;
+      for (const key in objectToFileMap) {
+        if (objectToFileMap[key] === val) {
+          meshName = key;
+          break;
+        }
+      }
+      updateSelectedObjectUI(meshName || val.replace('.html', ''));
     };
 
     srcSel.addEventListener('change', () => {
-      pipFrame.src = srcSel.value;
-      triggerToast(`詳細零件切換為：${srcSel.options[srcSel.selectedIndex].text}`);
-      notifyMainIframe(srcSel.value);
+      setSrc(srcSel.value, true);
+      triggerToast(`Selected: ${srcSel.options[srcSel.selectedIndex].text}`);
     });
 
     function notifyMainIframe(fileName) {
@@ -1026,8 +1080,6 @@
       if (!meshName) {
         meshName = fileName.replace(".html", "");
       }
-      
-      const mainIframe = document.getElementById('main');
       if (mainIframe && mainIframe.contentWindow) {
         mainIframe.contentWindow.postMessage({
           type: "parent_selected_component",
@@ -1036,126 +1088,67 @@
       }
     }
 
-    // Reload PiP Component action with loading animation
     reloadBtn.addEventListener('click', () => {
       reloadBtn.classList.add('spinning');
-      pipFrame.src = pipFrame.src;
-      
+      pipFrame.src = iframeUrl(srcSel.value);
       setTimeout(() => {
         reloadBtn.classList.remove('spinning');
-        triggerToast('PiP 零件模型已重新整理');
-      }, 800);
+        triggerToast('Reloaded PiP');
+      }, 500);
     });
 
-    // 5. Switch Display PiP action
     togglePip.addEventListener('change', (e) => {
+      if (isMobileViewport()) {
+        setMobilePipOpen(e.target.checked);
+        return;
+      }
+      pip.classList.remove('mobile-open');
       pip.style.display = e.target.checked ? 'block' : 'none';
-      triggerToast(e.target.checked ? 'PiP 視窗已顯示' : 'PiP 視窗已隱藏');
     });
 
-    // Click Through Penetrability action
-    clickThrough.addEventListener('change', (e) => {
-      pip.style.pointerEvents = e.target.checked ? 'none' : 'auto';
-      triggerToast(e.target.checked ? '視窗鎖定開啟 (鍵盤 T 可切換)' : '視窗鎖定關閉');
-    });
-
-    // 6. Opacity slider action
-    function updateOpacity(val) {
-      pip.style.opacity = (val / 100).toString();
-      opv.textContent = val + '%';
-    }
-    opacitySlider.addEventListener('input', (e) => {
-      updateOpacity(e.target.value);
-    });
-
-    // 7. Preset Sizes triggers
-    document.querySelectorAll('.icon-btn[data-size]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        if (btn.dataset.size === 'full') {
-          if (!pip.classList.contains('fullscreen')) {
-            toggleFS.click();
-          }
-          return;
-        }
-        if (pip.classList.contains('fullscreen')) {
-          toggleFS.click();
-        }
-        const [w, h] = btn.dataset.size.split('x').map(Number);
-        pip.style.width = w + 'px';
-        pip.style.height = h + 'px';
-        triggerToast(`調整 PiP 大小為 ${w} × ${h}`);
-      });
-    });
-
-    // 8. Preset Positions Alignment actions (↖, ↗, ↙, ↘)
-    const SAFE_TOP = 14 + 76 + 12;
-    
-    function clearPinCoords() {
-      pip.style.left = '';
-      pip.style.top = '';
-      pip.style.right = '';
-      pip.style.bottom = '';
+    if (mobilePipToggle) {
+      mobilePipToggle.addEventListener('click', toggleMobilePip);
     }
 
-    document.getElementById('pinTL').addEventListener('click', () => {
-      clearPinCoords();
-      pip.style.left = '16px';
-      pip.style.top = SAFE_TOP + 'px';
-      triggerToast('對齊位置：左上角 (↖)');
-    });
-
-    document.getElementById('pinTR').addEventListener('click', () => {
-      clearPinCoords();
-      pip.style.right = '16px';
-      pip.style.top = SAFE_TOP + 'px';
-      triggerToast('對齊位置：右上角 (↗)');
-    });
-
-    document.getElementById('pinBL').addEventListener('click', () => {
-      clearPinCoords();
-      pip.style.left = '16px';
-      pip.style.bottom = '16px';
-      triggerToast('對齊位置：左下角 (↙)');
-    });
-
-    document.getElementById('pinBR').addEventListener('click', () => {
-      clearPinCoords();
-      pip.style.right = '16px';
-      pip.style.bottom = '16px';
-      triggerToast('對齊位置：右下角 (↘)');
-    });
-
-    // 9. PiP Fullscreen Toggle Functionality
-    toggleFS.addEventListener('click', () => {
-      pip.classList.toggle('fullscreen');
-      const isFS = pip.classList.contains('fullscreen');
-      
-      const fsIcon = isFS 
-        ? '<path d="M8 3v3a2 2 0 01-2 2H3m18 0h-3a2 2 0 01-2-2V3m0 18v-3a2 2 0 012-2h3M3 16h3a2 2 0 012 2v3"/>'
-        : '<path d="M8 3H5a2 2 0 00-2 2v3m18 0V5a2 2 0 00-2-2h-3m0 18h3a2 2 0 002-2v-3M3 16v3a2 2 0 002 2h3"/>';
-        
-      toggleFS.querySelector('svg').innerHTML = fsIcon;
-      document.getElementById('fs-tooltip').innerText = isFS ? '恢復 PiP 尺寸' : '零件全螢幕 (F)';
-      triggerToast(isFS ? '零件進入全螢幕模式' : '已恢復視窗尺寸');
-    });
-
-    document.getElementById('exitFSBtn').addEventListener('click', () => {
-      toggleFS.click();
-    });
-
-    // Keyboard Shortcuts
-    window.addEventListener('keydown', (e) => {
-      const k = e.key.toLowerCase();
-      if (k === 'h') {
-        togglePip.click();
-      } else if (k === 't') {
-        clickThrough.click();
-      } else if (k === 'f') {
-        toggleFS.click();
+    window.addEventListener('resize', () => {
+      if (!isMobileViewport()) {
+        pip.classList.remove('mobile-open');
+        if (mobilePipToggle) mobilePipToggle.classList.remove('active');
       }
     });
 
-    // 10. DRAGGING INTERACTION (Pointer Capture + Drag Shield Protection)
+    clickThrough.addEventListener('change', (e) => {
+      pip.style.pointerEvents = e.target.checked ? 'none' : 'auto';
+    });
+
+    opacitySlider.addEventListener('input', (e) => {
+      pip.style.opacity = (e.target.value / 100).toString();
+      opv.textContent = e.target.value + '%';
+    });
+
+    pipScaleButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        setPipScale(btn.dataset.scale);
+      });
+    });
+
+    pipFrame.addEventListener('load', () => {
+      setTimeout(() => syncPipTimelineVisibility(), 250);
+    });
+
+    document.getElementById('pinTL').addEventListener('click', () => { pip.style.left = '16px'; pip.style.top = '102px'; pip.style.right = ''; pip.style.bottom = ''; });
+    document.getElementById('pinTR').addEventListener('click', () => { pip.style.left = ''; pip.style.top = '102px'; pip.style.right = '16px'; pip.style.bottom = ''; });
+    document.getElementById('pinBL').addEventListener('click', () => { pip.style.left = '16px'; pip.style.top = ''; pip.style.right = ''; pip.style.bottom = '16px'; });
+    document.getElementById('pinBR').addEventListener('click', () => { pip.style.left = ''; pip.style.top = ''; pip.style.right = '16px'; pip.style.bottom = '16px'; });
+
+    toggleFS.addEventListener('click', () => {
+      setPipScale(pip.classList.contains('fullscreen') ? '1' : 'full');
+    });
+    document.getElementById('exitFSBtn').addEventListener('click', () => {
+      setPipScale('1');
+    });
+
+    // Dragging and resizing interaction logic
     (function dragPip() {
       let isDragging = false;
       let startX = 0, startY = 0;
@@ -1163,6 +1156,7 @@
 
       pip.addEventListener('pointerdown', (e) => {
         if (e.target.id === 'sizeHandle' || e.target.tagName === 'IFRAME') return;
+        if (e.target.closest('.pip-tools')) return;
         if (pip.classList.contains('fullscreen')) return;
 
         isDragging = true;
@@ -1177,10 +1171,8 @@
 
       window.addEventListener('pointermove', (e) => {
         if (!isDragging) return;
-        
         const deltaX = e.clientX - startX;
         const deltaY = e.clientY - startY;
-
         pip.style.left = (originLeft + deltaX) + 'px';
         pip.style.top = (originTop + deltaY) + 'px';
         pip.style.right = '';
@@ -1198,7 +1190,6 @@
       pip.addEventListener('pointercancel', stopDrag);
     })();
 
-    // 11. RESIZING INTERACTION (Pointer Capture + Resize Shield Protection)
     (function resizePip() {
       const handle = document.getElementById('sizeHandle');
       let isResizing = false;
@@ -1222,12 +1213,13 @@
 
       window.addEventListener('pointermove', (e) => {
         if (!isResizing) return;
-        
         const dw = e.clientX - startX;
         const dh = e.clientY - startY;
-
         pip.style.width = Math.max(180, sw + dw) + 'px';
         pip.style.height = Math.max(120, sh + dh) + 'px';
+        currentPipScale = '1';
+        setActivePipScaleButton('1');
+        syncPipTimelineVisibility('1');
       });
 
       const stopResize = () => {
@@ -1242,84 +1234,35 @@
       handle.addEventListener('pointercancel', stopResize);
     })();
 
-    // 12. Cross-Iframe Click to Sync Syncing Actions
     function switchPipByObject(objectName) {
       if (!autoSwitchCheckbox.checked) return;
-
-      console.log('[GH Main] 收到物件點擊:', objectName);
       if (!objectName) return;
 
       let matchedFile = null;
-
-      // Match the Three.js mesh name to file mapping
-      if (objectToFileMap[objectName]) {
-        matchedFile = objectToFileMap[objectName];
-      } else {
-        // Try partial match
-        for (const key in objectToFileMap) {
-          if (objectName.includes(key) || key.includes(objectName)) {
-            matchedFile = objectToFileMap[key];
-            console.log('[GH Main] 部分匹配成功:', key, '→', matchedFile);
-            break;
-          }
-        }
-      }
+      matchedFile = findObjectFile(objectName);
 
       if (matchedFile) {
-        setSrc(matchedFile);
-        triggerToast(`組件自動切換為：${srcSel.options[srcSel.selectedIndex].text}`);
-        
+        setSrc(matchedFile, false);
         if (!togglePip.checked) {
           togglePip.checked = true;
           pip.style.display = 'block';
         }
-      } else {
-        console.log('[GH Main] 未能匹配零件，名稱為:', objectName);
       }
     }
 
-    // Listen to localStorage storage events
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'forklift_selected_object') {
-        const objectName = e.newValue;
-        if (objectName) {
-          switchPipByObject(objectName);
-        }
-      }
-    });
-
-    // Listen to message events from iframe (postMessage guarantees local file:// and server cross-domain twin sync!)
     window.addEventListener('message', (event) => {
       if (event.data && event.data.type === 'forklift_selected_object') {
         const objectName = event.data.objectName;
+        updateSelectedObjectUI(objectName);
         if (objectName) {
           switchPipByObject(objectName);
         }
       }
     });
 
-    // Fallback polling for localStorage changes
-    let lastSelectedObject = null;
-    setInterval(() => {
-      if (!autoSwitchCheckbox.checked) return;
-
-      try {
-        const currentObject = localStorage.getItem('forklift_selected_object');
-        if (currentObject !== lastSelectedObject) {
-          lastSelectedObject = currentObject;
-          if (currentObject) {
-            switchPipByObject(currentObject);
-          }
-        }
-      } catch (e) {}
-    }, 300);
-
-    // 13. App Launch triggers
-    try {
-      localStorage.removeItem('forklift_selected_object');
-    } catch(e) {}
     setupDrawer();
-    triggerToast("GH 3D 智慧組立視覺化主控台已準備就緒");
+    setTimeout(() => syncPipTimelineVisibility(), 700);
+    triggerToast("GH Digital Twin Panel Ready");
   </script>
 </body>
 </html>

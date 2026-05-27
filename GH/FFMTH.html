@@ -1,1912 +1,871 @@
+
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GH 整體機械動態雙生主控台 | GH 3D 智慧組立視覺化主控台</title>
-  
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-      --pad: 16px;
-      --pip-w: 380px;
-      --pip-h: 250px;
-      --panel-h: 76px;
-      
-      --bg-obsidian: #060814;
-      --bg-panel: rgba(10, 15, 30, 0.75);
-      --bg-card: rgba(22, 30, 56, 0.85);
-      --border-color: rgba(99, 102, 241, 0.18);
-      --border-glow: rgba(59, 130, 246, 0.35);
-      
-      --primary: #8b5cf6;
-      --primary-glow: rgba(139, 92, 246, 0.4);
-      --accent: #3b82f6;
-      --accent-glow: rgba(59, 130, 246, 0.4);
-      
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-dim: #64748b;
-      
-      --font-family: 'Outfit', 'Noto Sans TC', system-ui, sans-serif;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FFMTH - 3D Assembly Overview</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #060814; color: #e5e7eb; font-family: 'Oswald', 'Outfit', sans-serif; display: flex; }
+        canvas { display: block; flex-grow: 1; }
+        
+        #timelineContainer {
+            position: absolute;
+            bottom: 16px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 70%;
+            max-width: 800px;
+            background: rgba(10, 15, 30, 0.75);
+            backdrop-filter: blur(20px) saturate(1.6);
+            -webkit-backdrop-filter: blur(20px) saturate(1.6);
+            padding: 10px 18px;
+            border-radius: 14px;
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5), inset 0 0 10px rgba(255, 255, 255, 0.02);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            transition: all 0.3s ease;
+        }
+        #timelineContainer:hover {
+            border-color: rgba(139, 92, 246, 0.35);
+            box-shadow: 0 12px 35px rgba(0, 0, 0, 0.6), 0 0 20px rgba(139, 92, 246, 0.2);
+        }
+        
+        .play-btn {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: #fff;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+            flex-shrink: 0;
+        }
+        .play-btn:hover {
+            background: rgba(139, 92, 246, 0.4);
+            border-color: #8b5cf6;
+            transform: scale(1.05);
+        }
+        .play-btn svg {
+            width: 14px;
+            height: 14px;
+            fill: currentColor;
+        }
+        
+        input[type="range"]#scrubber {
+            -webkit-appearance: none;
+            appearance: none;
+            flex-grow: 1;
+            height: 6px;
+            border-radius: 3px;
+            background: rgba(255, 255, 255, 0.15);
+            outline: none;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        input[type="range"]#scrubber::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            background: #8b5cf6;
+            cursor: pointer;
+            border: 2px solid #fff;
+            box-shadow: 0 0 8px rgba(139, 92, 246, 0.8);
+            transition: transform 0.1s;
+        }
+        input[type="range"]#scrubber::-webkit-slider-thumb:hover {
+            transform: scale(1.25);
+        }
+        
+        #timeDisplay {
+            font-family: monospace;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            min-width: 75px;
+            text-align: right;
+            user-select: none;
+        }
+        
+        #loopSelectBottom,
+        #materialSelectBottom {
+            background: rgba(22, 30, 56, 0.85);
+            color: #f8fafc;
+            border: 1px solid rgba(99, 102, 241, 0.18);
+            border-radius: 6px;
+            padding: 4px 20px 4px 8px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            outline: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 12 12'%3E%3Cpath fill='%238b5cf6' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 6px center;
+            min-width: 90px;
+            transition: all 0.2s;
+        }
+        #loopSelectBottom:hover,
+        #materialSelectBottom:hover {
+            border-color: #8b5cf6;
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body, html {
-      width: 100%;
-      height: 100%;
-      overflow: hidden;
-      font-family: var(--font-family);
-      background-color: var(--bg-obsidian);
-      color: var(--text-primary);
-    }
-
-    #mainCanvas {
-      position: fixed;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      background: radial-gradient(circle at center, #111827 0%, #030712 100%);
-      z-index: 1;
-      display: block;
-    }
-
-    .drag-shield {
-      position: fixed;
-      inset: 0;
-      z-index: 4000;
-      background: transparent;
-      display: none;
-      cursor: move;
-    }
-    .drag-shield.resizing {
-      cursor: nwse-resize;
-    }
-
-    .hud-panel {
-      position: fixed;
-      top: 14px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 90%;
-      max-width: 1300px;
-      height: var(--panel-h);
-      background: var(--bg-panel);
-      backdrop-filter: blur(20px) saturate(1.6);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(139, 92, 246, 0.1),
-        inset 0 0 10px rgba(255, 255, 255, 0.02);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 24px;
-      z-index: 2000;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    
-    .hud-panel:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 
-        0 12px 35px rgba(0, 0, 0, 0.6),
-        0 0 20px rgba(139, 92, 246, 0.2);
-    }
-
-    .hud-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .drawer-toggle {
-      background: rgba(255, 255, 255, 0.05);
-      border: 1px solid var(--border-color);
-      color: var(--text-primary);
-      width: 42px;
-      height: 42px;
-      border-radius: 10px;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.2s;
-    }
-    .drawer-toggle:hover {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      transform: scale(1.05);
-    }
-    .drawer-toggle svg {
-      width: 20px;
-      height: 20px;
-    }
-
-    .brand-block {
-      display: flex;
-      flex-direction: column;
-    }
-    .brand-title {
-      font-size: 1.15rem;
-      font-weight: 800;
-      letter-spacing: 0.5px;
-      background: linear-gradient(135deg, #fff 30%, var(--primary) 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .brand-subtitle {
-      font-size: 0.68rem;
-      color: var(--text-secondary);
-      font-weight: 600;
-      letter-spacing: 1px;
-      text-transform: uppercase;
-    }
-
-    .hud-center {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-
-    .control-group {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      padding: 6px 12px;
-      background: rgba(255, 255, 255, 0.03);
-      border: 1px solid rgba(255, 255, 255, 0.04);
-      border-radius: 12px;
-      transition: all 0.2s;
-    }
-    .control-group:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(139, 92, 246, 0.2);
-    }
-    .control-group.highlight {
-      background: rgba(139, 92, 246, 0.06);
-      border-color: rgba(139, 92, 246, 0.25);
-    }
-
-    .hud-label {
-      font-size: 0.75rem;
-      font-weight: 600;
-      color: var(--text-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    select {
-      background: var(--bg-card);
-      color: var(--text-primary);
-      border: 1px solid var(--border-color);
-      border-radius: 8px;
-      padding: 6px 30px 6px 12px;
-      font-family: var(--font-family);
-      font-size: 0.85rem;
-      font-weight: 500;
-      cursor: pointer;
-      appearance: none;
-      outline: none;
-      transition: all 0.2s;
-      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b5cf6' d='M6 8L2 4h8z'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 10px center;
-      min-width: 170px;
-    }
-    select:hover {
-      border-color: var(--primary);
-      box-shadow: 0 0 10px rgba(139, 92, 246, 0.15);
-    }
-
-    .icon-btn {
-      width: 34px;
-      height: 34px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.06);
-      border-radius: 8px;
-      color: var(--text-primary);
-      cursor: pointer;
-      position: relative;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    .icon-btn:hover {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 10px rgba(139, 92, 246, 0.2);
-    }
-    .icon-btn svg {
-      width: 16px;
-      height: 16px;
-      fill: none;
-      stroke: currentColor;
-      stroke-width: 2.2;
-      stroke-linecap: round;
-      stroke-linejoin: round;
-    }
-    .icon-btn.size-sm {
-      width: 28px;
-      height: 28px;
-      border-radius: 6px;
-    }
-    .icon-btn.size-sm svg {
-      width: 13px;
-      height: 13px;
-    }
-
-    .switch-label {
-      position: relative;
-      width: 38px;
-      height: 20px;
-      background: rgba(255, 255, 255, 0.08);
-      border-radius: 10px;
-      cursor: pointer;
-      display: block;
-      transition: background 0.3s;
-      border: 1px solid rgba(255, 255, 255, 0.05);
-    }
-    .switch-label::after {
-      content: '';
-      position: absolute;
-      top: 1px;
-      left: 1px;
-      width: 16px;
-      height: 16px;
-      background: #cbd5e1;
-      border-radius: 50%;
-      transition: left 0.25s cubic-bezier(0.4, 0, 0.2, 1);
-    }
-    input[type="checkbox"] {
-      display: none;
-    }
-    input[type="checkbox"]:checked + .switch-label {
-      background: var(--primary);
-    }
-    input[type="checkbox"]:checked + .switch-label::after {
-      left: 19px;
-      background: #fff;
-    }
-
-    .slider-container {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-    input[type="range"] {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 80px;
-      height: 5px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.1);
-      outline: none;
-    }
-    input[type="range"]::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 13px;
-      height: 13px;
-      border-radius: 50%;
-      background: var(--primary);
-      cursor: pointer;
-      border: 2px solid #fff;
-      box-shadow: 0 0 6px rgba(139,92,246,0.6);
-      transition: transform 0.1s;
-    }
-    .slider-val {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--primary);
-      width: 32px;
-      text-align: right;
-    }
-
-    .vertical-divider {
-      width: 1px;
-      height: 28px;
-      background: rgba(255, 255, 255, 0.08);
-      margin: 0 4px;
-    }
-
-    .sidebar-drawer {
-      position: fixed;
-      top: 0;
-      left: -320px;
-      width: 300px;
-      height: 100%;
-      background: rgba(8, 10, 20, 0.92);
-      backdrop-filter: blur(25px);
-      border-right: 1px solid var(--border-color);
-      z-index: 3000;
-      box-shadow: 20px 0 50px rgba(0, 0, 0, 0.6);
-      transition: left 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      display: flex;
-      flex-direction: column;
-    }
-    .sidebar-drawer.open {
-      left: 0;
-    }
-
-    .drawer-header {
-      padding: 24px;
-      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-    .drawer-title {
-      font-size: 1.05rem;
-      font-weight: 700;
-      color: #fff;
-      letter-spacing: 0.5px;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-    .drawer-title svg {
-      color: var(--primary);
-    }
-
-    .drawer-content {
-      flex-grow: 1;
-      overflow-y: auto;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-
-    .assembly-item {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 12px 16px;
-      background: rgba(255, 255, 255, 0.02);
-      border: 1px solid rgba(255, 255, 255, 0.03);
-      border-radius: 10px;
-      cursor: pointer;
-      transition: all 0.2s ease;
-      text-align: left;
-    }
-    .assembly-item:hover {
-      background: rgba(139, 92, 246, 0.05);
-      border-color: rgba(139, 92, 246, 0.25);
-      transform: translateX(4px);
-    }
-    .assembly-item.active {
-      background: rgba(139, 92, 246, 0.12);
-      border-color: var(--primary);
-      box-shadow: inset 0 0 10px rgba(139, 92, 246, 0.1);
-    }
-    .assembly-item svg {
-      width: 18px;
-      height: 18px;
-      color: var(--text-secondary);
-      flex-shrink: 0;
-    }
-    .assembly-item.active svg {
-      color: var(--primary);
-    }
-    .assembly-info {
-      display: flex;
-      flex-direction: column;
-    }
-    .assembly-name {
-      font-size: 0.88rem;
-      font-weight: 600;
-      color: var(--text-primary);
-      word-break: break-all;
-    }
-    .assembly-file {
-      font-size: 0.68rem;
-      color: var(--text-dim);
-      margin-top: 1px;
-    }
-
-    .drawer-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.4);
-      backdrop-filter: blur(4px);
-      z-index: 2900;
-      display: none;
-    }
-    .drawer-overlay.open {
-      display: block;
-    }
-
-    #pip {
-      position: fixed;
-      right: var(--pad);
-      top: calc(var(--pad) + var(--panel-h) + 12px);
-      width: var(--pip-w);
-      height: var(--pip-h);
-      background: rgba(8, 10, 22, 0.82);
-      backdrop-filter: blur(25px);
-      border: 1px solid var(--border-color);
-      border-radius: 20px;
-      box-shadow: 
-        0 25px 60px -10px rgba(0, 0, 0, 0.6),
-        0 0 25px rgba(139, 92, 246, 0.1),
-        inset 0 0 15px rgba(255, 255, 255, 0.03);
-      overflow: hidden;
-      z-index: 1000;
-      transition: border-color 0.3s, box-shadow 0.3s, opacity 0.3s;
-    }
-    #pip:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-      box-shadow: 
-        0 30px 65px -10px rgba(0, 0, 0, 0.7),
-        0 0 30px rgba(139, 92, 246, 0.2);
-    }
-    #pip iframe {
-      width: 100%;
-      height: 100%;
-      display: block;
-      border: 0;
-      border-radius: inherit;
-    }
-
-    #pip.fullscreen {
-      top: 0 !important;
-      left: 0 !important;
-      right: 0 !important;
-      bottom: 0 !important;
-      width: 100% !important;
-      height: 100% !important;
-      border-radius: 0 !important;
-      border: 0 !important;
-      z-index: 3500;
-    }
-
-    .exit-fs-btn {
-      position: absolute;
-      top: 20px;
-      right: 20px;
-      padding: 8px 16px;
-      background: rgba(10, 15, 30, 0.85);
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
-      border: 1px solid rgba(139, 92, 246, 0.4);
-      border-radius: 8px;
-      color: var(--text-primary);
-      font-family: var(--font-family);
-      font-size: 0.8rem;
-      font-weight: 600;
-      cursor: pointer;
-      display: none;
-      align-items: center;
-      gap: 8px;
-      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-      transition: all 0.2s ease;
-      z-index: 100;
-    }
-    .exit-fs-btn:hover {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      transform: translateY(-1px);
-      box-shadow: 0 6px 20px rgba(139, 92, 246, 0.3);
-    }
-    #pip.fullscreen .exit-fs-btn {
-      display: flex;
-    }
-
-    .size-handle {
-      position: absolute;
-      right: 4px;
-      bottom: 4px;
-      width: 22px;
-      height: 22px;
-      cursor: nwse-resize;
-      background: linear-gradient(135deg, transparent 50%, var(--primary) 50%);
-      border-radius: 0 0 18px 0;
-      opacity: 0.6;
-      transition: opacity 0.2s;
-      z-index: 10;
-    }
-    .size-handle:hover {
-      opacity: 1;
-    }
-
-    .toast {
-      position: fixed;
-      bottom: 24px;
-      left: 24px;
-      background: rgba(10, 15, 30, 0.95);
-      border-left: 4px solid var(--primary);
-      border-top: 1px solid var(--border-color);
-      border-right: 1px solid var(--border-color);
-      border-bottom: 1px solid var(--border-color);
-      padding: 12px 20px;
-      border-radius: 0 8px 8px 0;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-      z-index: 9999;
-      transform: translateY(120%);
-      transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      font-weight: 500;
-    }
-    .toast.show {
-      transform: translateY(0);
-    }
-    .toast svg {
-      width: 16px;
-      height: 16px;
-      color: var(--primary);
-    }
-
-    .telemetry-hud {
-      position: fixed;
-      left: 18px;
-      top: calc(var(--pad) + var(--panel-h) + 12px);
-      width: 240px;
-      background: rgba(8, 10, 22, 0.82);
-      backdrop-filter: blur(25px);
-      border: 1px solid var(--border-color);
-      border-radius: 16px;
-      padding: 16px;
-      z-index: 1000;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .telemetry-title {
-      font-size: 0.72rem;
-      font-weight: 700;
-      color: var(--primary);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-      padding-bottom: 6px;
-    }
-    .telemetry-row {
-      display: flex;
-      justify-content: space-between;
-      font-size: 0.78rem;
-    }
-    .telemetry-label {
-      color: var(--text-secondary);
-    }
-    .telemetry-value {
-      font-family: 'JetBrains Mono', monospace;
-      color: #fff;
-      font-weight: 500;
-    }
-
-    .progress-bar-hud {
-      margin-top: 4px;
-      height: 4px;
-      background: rgba(255, 255, 255, 0.05);
-      border-radius: 2px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      display: block;
-      height: 100%;
-      width: 0%;
-      background: linear-gradient(90deg, var(--primary), var(--accent));
-      transition: width 0.3s;
-    }
-
-    @media (max-width: 768px) {
-      :root {
-        --panel-h: 60px;
-        --pip-w: 240px;
-        --pip-h: 160px;
-      }
-      
-      .hud-panel {
-        top: 8px;
-        width: 96%;
-        height: var(--panel-h);
-        padding: 0 12px;
-        border-radius: 12px;
-      }
-      
-      /* Hide secondary and cluttered HUD controls on mobile */
-      .hud-center > * {
-        display: none !important;
-      }
-      
-      /* Keep only the main selector control-group visible */
-      .hud-center > .control-group.highlight {
-        display: flex !important;
-        width: 100%;
-        justify-content: space-between;
-        padding: 4px 8px;
-      }
-      
-      .brand-block {
-        display: none; /* Hide brand details on small screens to save space */
-      }
-      
-      .hud-center {
-        width: 100%;
-        justify-content: flex-end;
-      }
-      
-      select {
-        min-width: 110px;
-        max-width: 160px;
-        font-size: 0.8rem;
-        padding: 4px 24px 4px 8px;
-      }
-      
-      #pip {
-        width: var(--pip-w) !important;
-        height: var(--pip-h) !important;
-        right: 8px !important;
-        bottom: 8px !important;
-        top: auto !important;
-        left: auto !important;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
-      }
-      
-      .telemetry-hud {
-        display: none !important; /* Hide telemetry data for clean mobile viewport */
-      }
-      
-      .sidebar-drawer {
-        width: 260px;
-      }
-    }
-
-    /* -------------------------------------------------------------
-     * BOTTOM TIMELINE HUD
-     * ------------------------------------------------------------- */
-    .timeline-hud {
-      position: fixed;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 60%;
-      max-width: 800px;
-      height: 48px;
-      background: var(--bg-panel);
-      backdrop-filter: blur(20px) saturate(1.6);
-      border: 1px solid var(--border-color);
-      border-radius: 12px;
-      box-shadow: 
-        0 10px 30px rgba(0, 0, 0, 0.5),
-        0 0 15px rgba(139, 92, 246, 0.1);
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 0 16px;
-      z-index: 2000;
-      transition: all 0.3s;
-    }
-    
-    .timeline-hud:hover {
-      border-color: rgba(139, 92, 246, 0.35);
-    }
-    
-    .timeline-time {
-      font-family: 'JetBrains Mono', monospace;
-      font-size: 0.75rem;
-      color: var(--text-secondary);
-      min-width: 45px;
-      text-align: center;
-    }
-    
-    #timelineScrubber {
-      flex-grow: 1;
-      -webkit-appearance: none;
-      appearance: none;
-      height: 6px;
-      border-radius: 3px;
-      background: rgba(255, 255, 255, 0.1);
-      outline: none;
-      cursor: pointer;
-    }
-    
-    #timelineScrubber::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      appearance: none;
-      width: 14px;
-      height: 14px;
-      border-radius: 50%;
-      background: var(--primary);
-      border: 2px solid #fff;
-      box-shadow: 0 0 6px rgba(139, 92, 246, 0.6);
-      transition: transform 0.1s;
-    }
-    
-    #timelineScrubber::-webkit-slider-thumb:hover {
-      transform: scale(1.2);
-    }
-    
-    @media (max-width: 768px) {
-      .timeline-hud {
-        width: 90%;
-        bottom: 80px;
-      }
-    }
-  </style>
+        #tooltip {
+            position: absolute;
+            background: rgba(8, 10, 22, 0.85);
+            backdrop-filter: blur(8px);
+            border: 1px solid rgba(99, 102, 241, 0.3);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            pointer-events: none;
+            transform: translate(10px, -30px);
+            z-index: 100;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+        }
+        
+        #loader {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #060814;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            transition: opacity 0.5s ease;
+        }
+        #progress-container {
+            width: 300px;
+            text-align: center;
+            color: white;
+        }
+        #progress-bar-wrapper {
+            width: 100%; height: 6px;
+            background-color: rgba(255, 255, 255, 0.08);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.03);
+        }
+        #progress-bar {
+            width: 0%; height: 100%;
+            background: linear-gradient(90deg, #8b5cf6, #3b82f6);
+            border-radius: 3px;
+            transition: width 0.1s linear;
+        }
+        #progress-text {
+            font-size: 0.85rem;
+            color: #94a3b8;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+        }
+    </style>
 </head>
 <body>
-
-  <!-- MAIN ASSEMBLY 3D VIEWPORT -->
-  <canvas id="mainCanvas"></canvas>
-
-  <!-- TELEMETRY HUD -->
-  <div class="telemetry-hud">
-    <div class="telemetry-title" id="telemetryHeader" style="cursor: pointer; display: flex; align-items: center; justify-content: space-between; user-select: none;">
-      <span>🔬 遙測數據即時 ANALYSIS</span>
-      <svg id="telemetryToggleArrow" viewBox="0 0 24 24" style="width: 14px; height: 14px; stroke: currentColor; fill: none; stroke-width: 2.5; transition: transform 0.3s;"><polyline points="18 15 12 9 6 15"/></svg>
-    </div>
-    <div class="telemetry-body" id="telemetryBody" style="transition: all 0.3s ease; max-height: 200px; opacity: 1; overflow: hidden; display: flex; flex-direction: column; gap: 10px; margin-top: 10px;">
-      <div class="telemetry-row">
-        <span class="telemetry-label">引擎幀率 (FPS)</span>
-        <span class="telemetry-value" id="hud-fps">--</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">選中智慧零件</span>
-        <span class="telemetry-value" id="hud-part" style="color: var(--primary);">Full Assembly</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">網格頂點總數</span>
-        <span class="telemetry-value" id="hud-vertices">--</span>
-      </div>
-      <div class="telemetry-row">
-        <span class="telemetry-label">LOD 載入狀態</span>
-        <span class="telemetry-value" id="hud-lod" style="color: #22c55e;">LOW (外部 GLB 載入)</span>
-      </div>
-      <div class="progress-bar-hud"><span class="progress-fill" id="hud-progress"></span></div>
-    </div>
-  </div>
-
-  <!-- BOTTOM TIMELINE CONTROLLER -->
-  <div id="timelineContainer" class="timeline-hud" style="display: none;">
-    <button class="icon-btn size-sm" id="btnPlayPauseBottom" title="播放/暫停">
-      <svg viewBox="0 0 24 24" style="width: 14px; height: 14px; fill: currentColor; stroke: none;"><path id="playPauseIconBottom" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
-    </button>
-    <span class="timeline-time" id="lblCurrentTime">0.0s</span>
-    <input type="range" id="timelineScrubber" min="0" max="1" step="0.001" value="0">
-    <span class="timeline-time" id="lblTotalTime">0.0s</span>
-    <div class="vertical-divider" style="height: 18px; margin: 0 4px;"></div>
-    <select id="loopSelectBottom" style="min-width: 80px; height: 26px; font-size: 0.72rem; padding: 2px 18px 2px 6px; border-radius: 6px; background-color: rgba(22, 30, 56, 0.85); border: 1px solid rgba(99, 102, 241, 0.18); color: #f8fafc; cursor: pointer; outline: none; transition: border-color 0.2s; appearance: none; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='8' viewBox='0 0 12 12'%3E%3Cpath fill='%238b5cf6' d='M6 8L2 4h8z'/%3E%3C/svg%3E&quot;); background-repeat: no-repeat; background-position: right 6px center;">
-      <option value="loop">循環播放</option>
-      <option value="once">單次播放</option>
-    </select>
-  </div>
-
-  <!-- INVISIBLE SHIELD OVER PIP DURING RESIZE -->
-  <div id="dragShield" class="drag-shield"></div>
-
-  <!-- FLOATING TOAST -->
-  <div id="toast" class="toast">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
-    <span id="toast-text">Engine Online</span>
-  </div>
-
-  <!-- SIDEBAR ASSEMBLY COMPONENT DRAWER -->
-  <div id="drawerOverlay" class="drawer-overlay"></div>
-  <aside id="sidebarDrawer" class="sidebar-drawer">
-    <div class="drawer-header">
-      <div class="drawer-title">
-        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 6.96L12 12.01l8.73-5.05M12 22.08V12"/></svg>
-        <span>智慧組立節點選單</span>
-      </div>
-      <button class="icon-btn" id="btn-close-drawer" title="關閉">
-        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-      </button>
-    </div>
-    <div class="drawer-content" id="drawer-assemblies">
-      <div class="assembly-item active" data-name="01A0100Low">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">01A0100Low</span>
-            <span class="assembly-file">智慧零件編號: # 1</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="03A01A1_L">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">03A01A1_L</span>
-            <span class="assembly-file">智慧零件編號: # 2</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="03A01A1_M">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">03A01A1_M</span>
-            <span class="assembly-file">智慧零件編號: # 3</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="03A01A1_R">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">03A01A1_R</span>
-            <span class="assembly-file">智慧零件編號: # 4</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="03AL_L">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">03AL_L</span>
-            <span class="assembly-file">智慧零件編號: # 5</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="03AL_R">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">03AL_R</span>
-            <span class="assembly-file">智慧零件編號: # 6</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="04D0101LLOW_L">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">04D0101LLOW_L</span>
-            <span class="assembly-file">智慧零件編號: # 7</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="04D0101LLOW_R">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">04D0101LLOW_R</span>
-            <span class="assembly-file">智慧零件編號: # 8</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="05A_L">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">05A_L</span>
-            <span class="assembly-file">智慧零件編號: # 9</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="05A_R">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">05A_R</span>
-            <span class="assembly-file">智慧零件編號: # 10</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="2A0201Low">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">2A0201Low</span>
-            <span class="assembly-file">智慧零件編號: # 11</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="FMTH01A0300L">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">FMTH01A0300L</span>
-            <span class="assembly-file">智慧零件編號: # 12</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="FMTH01A0500">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">FMTH01A0500</span>
-            <span class="assembly-file">智慧零件編號: # 13</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="FMTH02D0100">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">FMTH02D0100</span>
-            <span class="assembly-file">智慧零件編號: # 14</span>
-          </div>
-        </div>
-<div class="assembly-item " data-name="導角18">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/></svg>
-          <div class="assembly-info">
-            <span class="assembly-name">導角18</span>
-            <span class="assembly-file">智慧零件編號: # 15</span>
-          </div>
+    <div id="tooltip"></div>
+    <div id="loader">
+        <div id="progress-container">
+            <div id="progress-bar-wrapper"><div id="progress-bar"></div></div>
+            <span id="progress-text">Streaming FFMTH Assembly Overview... 0%</span>
         </div>
     </div>
-  </aside>
 
-  <!-- TOP SCADA CONTROL HEADER (HUD PANEL) -->
-  <header class="hud-panel" id="hudPanel">
-    <div class="hud-left">
-      <button class="drawer-toggle" id="btn-open-drawer" title="開啟智慧節點選單">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
-      </button>
-      <a href="../index.html" class="icon-btn" title="回到首頁" style="margin-left: 4px;">
-        <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      </a>
-      <div class="brand-block">
-        <span class="brand-title">FFMTH</span>
-        <span class="brand-subtitle">SCADA 遙測控制台</span>
-      </div>
-    </div>
-
-    <div class="hud-center">
-      <div class="control-group">
-        <span class="hud-label">材質模式</span>
-        <select id="materialModeSelect" style="min-width: 130px;">
-          <option value="clay-outline">白模加線條</option>
-          <option value="original">原始 PBR 材質</option>
-        </select>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <span class="hud-label">動畫模式</span>
-        <select id="animationLoopSelect" style="min-width: 110px;">
-          <option value="loop">循環播放</option>
-          <option value="once">單次播放</option>
-        </select>
-      </div>
-
-      <div class="control-group" id="animPlayGroup" style="display: none;">
-        <span class="hud-label">動畫段落</span>
-        <select id="animationSelect" style="min-width: 130px;"></select>
-        <button class="icon-btn" id="btnPlayPause" title="播放/暫停動畫">
-          <svg viewBox="0 0 24 24" style="width: 16px; height: 16px; fill: currentColor; stroke: none;"><path id="playPauseIcon" d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+    <!-- Floating Time Slider / Animation Scrubber -->
+    <div id="timelineContainer">
+        <button class="play-btn" id="playBtn" title="Play / Pause">
+            <svg id="playIcon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+            <svg id="pauseIcon" viewBox="0 0 24 24" style="display:none;"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
         </button>
-      </div>
-
-      <div class="control-group">
-        <span class="hud-label">鎖定對齊</span>
-        <input type="checkbox" id="clickThrough">
-        <label for="clickThrough" class="switch-label"></label>
-      </div>
-
-      <div class="control-group">
-        <span class="hud-label">點擊同步</span>
-        <input type="checkbox" id="autoSwitch" checked>
-        <label for="autoSwitch" class="switch-label"></label>
-      </div>
-
-      <div class="vertical-divider"></div>
-
-      <div class="control-group">
-        <span class="hud-label">透明度</span>
-        <div class="slider-container">
-          <input type="range" id="opacitySlider" min="20" max="100" value="100">
-          <span class="slider-val" id="opv">100%</span>
-        </div>
-      </div>
-
+        <input type="range" id="scrubber" min="0" max="1" step="0.001" value="0">
+        <select id="loopSelectBottom">
+            <option value="loop">Loop</option>
+            <option value="once">Play Once</option>
+        </select>
+        <select id="materialSelectBottom">
+            <option value="clay">白膜 + 線條</option>
+            <option value="original">原材質</option>
+        </select>
+        <div id="timeDisplay">0.0s / 0.0s</div>
     </div>
-  </header>
 
-  <!-- DRAGGABLE & RESIZABLE PIP WINDOW -->
-  <article id="pip">
-    <iframe id="pipFrame" src="01A0300L.html" allow="xr; autoplay; fullscreen"></iframe>
-    <div class="size-handle" id="pipResizeHandle"></div>
-  </article>
-
-  <script type="importmap">
-  {
-    "imports": {
-      "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
-      "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
-    }
-  }
-  </script>
-
-  <script type="module">
-  import * as THREE from "three";
-  import { OrbitControls } from "three/addons/controls/OrbitControls.js";
-  import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-
-  const LOW_GLB_BASE64 = "";
-  const HIGH_GLB_URL = "";
-  const HIGH_MODE = "auto";
-  const ANIM_MODE = "autoplay";
-  const START_MATERIAL_MODE = "clay-outline";
-
-  let scene, camera, renderer, controls, loader;
-  let currentModel = null;
-  let mixer = null;
-  let actions = [];
-  let clock = new THREE.Clock();
-  let isAnimPlaying = true;
-  let animDuration = 0;
-  let isScrubbing = false;
-  let selectedMeshName = null;
-
-  // Mesh name → standalone component HTML page mapping (FAMM-style linkage)
-  const objectToFileMap = {
-    '01A0100Low':     '01A0300L.html',
-    'FMTH01A0300L':   '01A0300L.html',
-    '01A0300R':       '01A0300R.html',
-    '03AL_L':         '03A0101.html',
-    '03AL_R':         '03A0101.html',
-    'FMTH01A0500':    '01A0500.html',
-    '2A0201Low':      '02A0201.html',
-    'FMTH02D0100':    '02D0100.html',
-    '03A01A1_L':      '03A01A1.html',
-    '03A01A1_M':      '03A01A1.html',
-    '03A01A1_R':      '03A01A1.html',
-    '04D0101LLOW_L':  '04D0101.html',
-    '04D0101LLOW_R':  '04D0101.html',
-    '05A_L':          '05A1001.html',
-    '05A_R':          '05A1001.html',
-  };
-
-  let currentMaterialMode = START_MATERIAL_MODE;
-  let lastFpsTime = 0;
-  let frameCount = 0;
-
-  const mainCanvas = document.getElementById("mainCanvas");
-  const pipWindow = document.getElementById("pip");
-  const pipFrame = document.getElementById("pipFrame");
-  const toast = document.getElementById("toast");
-  const toastText = document.getElementById("toast-text");
-  
-  // HUD Elements
-  const hudProgress = document.getElementById("hud-progress");
-  const hudLod = document.getElementById("hud-lod");
-  const hudFps = document.getElementById("hud-fps");
-  const hudPart = document.getElementById("hud-part");
-  const hudVertices = document.getElementById("hud-vertices");
-
-  init();
-  animate();
-
-  if (LOW_GLB_BASE64) {
-    loadModel(LOW_GLB_BASE64, "LOW / Base64", false);
-  } else {
-    loadModel("./glb/FFMTH_Low.glb", "LOW / 外部 GLB", false);
-  }
-  
-  if(HIGH_GLB_URL && HIGH_MODE === "auto"){
-    setTimeout(()=>loadHighModel(), 500);
-  }
-
-  // Setup HUD and Event Listeners
-  document.getElementById("btn-open-drawer").addEventListener("click", () => {
-    document.getElementById("sidebarDrawer").classList.add("open");
-    document.getElementById("drawerOverlay").classList.add("open");
-  });
-  
-  const closeDrawer = () => {
-    document.getElementById("sidebarDrawer").classList.remove("open");
-    document.getElementById("drawerOverlay").classList.remove("open");
-  };
-  document.getElementById("btn-close-drawer").addEventListener("click", closeDrawer);
-  document.getElementById("drawerOverlay").addEventListener("click", closeDrawer);
-
-  const animSelect = document.getElementById("animationLoopSelect");
-  
-  function updateAnimationLoopMode(mode) {
-    if (actions.length > 0) {
-      actions.forEach(action => {
-        if (action) {
-          action.clampWhenFinished = (mode === "once");
-          action.setLoop(mode === "once" ? THREE.LoopOnce : THREE.LoopRepeat, mode === "once" ? 1 : Infinity);
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
         }
-      });
-      showToast("動畫模式已切換為: " + (mode === "once" ? "單次播放" : "循環播放"));
     }
-  }
-
-  const loopSelectBottom = document.getElementById("loopSelectBottom");
-
-  if (animSelect) {
-    animSelect.addEventListener("change", (e) => {
-      const val = e.target.value;
-      if (loopSelectBottom) loopSelectBottom.value = val;
-      updateAnimationLoopMode(val);
-    });
-  }
-
-  if (loopSelectBottom) {
-    loopSelectBottom.addEventListener("change", (e) => {
-      const val = e.target.value;
-      if (animSelect) animSelect.value = val;
-      updateAnimationLoopMode(val);
-    });
-  }
-
-  // Two-way sync: listen to component highlight message from parent window (Twin synchronization)
-  window.addEventListener('message', (event) => {
-    if (event.data && event.data.type === 'parent_selected_component') {
-      const compName = event.data.componentName;
-      if (compName) {
-        console.log("[GH Standalone] 收到父視窗零件選取指令:", compName);
-        selectComponent(compName);
-      }
-    }
-  });
-
-  function updatePlayPauseUI(playing) {
-    isAnimPlaying = playing;
-    const playPauseIcon = document.getElementById("playPauseIcon");
-    const playPauseIconBottom = document.getElementById("playPauseIconBottom");
+    </script>
     
-    if (isAnimPlaying) {
-      if (playPauseIcon) playPauseIcon.setAttribute("d", "M6 19h4V5H6v14zm8-14v14h4V5h-4z");
-      if (playPauseIconBottom) playPauseIconBottom.setAttribute("d", "M6 19h4V5H6v14zm8-14v14h4V5h-4z");
-    } else {
-      if (playPauseIcon) playPauseIcon.setAttribute("d", "M8 5v14l11-7z");
-      if (playPauseIconBottom) playPauseIconBottom.setAttribute("d", "M8 5v14l11-7z");
-    }
-  }
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+        import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 
-  function togglePlayPause() {
-    if (actions.length === 0) return;
-    const playing = !isAnimPlaying;
-    
-    if (playing) {
-      // Check if we are at or near the end under LoopOnce mode
-      const loopModeSelect = document.getElementById("animationLoopSelect");
-      const loopMode = loopModeSelect ? loopModeSelect.value : "loop";
-      
-      let atEnd = false;
-      if (mixer) {
-        if (loopMode === "once" && mixer.time >= animDuration - 0.01) {
-          atEnd = true;
-        }
-      }
-      
-      actions.forEach(action => {
-        if (action) {
-          if (atEnd) {
-            action.reset().play();
-          } else {
-            action.paused = false;
-          }
-        }
-      });
-      if (atEnd && mixer) {
-        mixer.time = 0;
-      }
-    } else {
-      actions.forEach(action => {
-        if (action) action.paused = true;
-      });
-    }
-    
-    updatePlayPauseUI(playing);
-    showToast(playing ? "動畫播放中" : "動畫已暫停");
-  }
-
-  const btnPlayPause = document.getElementById("btnPlayPause");
-  if (btnPlayPause) {
-    btnPlayPause.addEventListener("click", togglePlayPause);
-  }
-  
-  const btnPlayPauseBottom = document.getElementById("btnPlayPauseBottom");
-  if (btnPlayPauseBottom) {
-    btnPlayPauseBottom.addEventListener("click", togglePlayPause);
-  }
-
-  // Scrubber slider listeners
-  const scrubber = document.getElementById("timelineScrubber");
-  if (scrubber) {
-    scrubber.addEventListener("mousedown", () => { isScrubbing = true; });
-    scrubber.addEventListener("touchstart", () => { isScrubbing = true; });
-    
-    scrubber.addEventListener("input", (e) => {
-      if (animDuration > 0) {
-        const t = parseFloat(e.target.value) * animDuration;
-        if (mixer) {
-          actions.forEach(action => {
-            if (action) {
-              action.paused = false;
-              action.play();
-            }
-          });
-          mixer.setTime(t);
-          if (!isAnimPlaying) {
-            actions.forEach(action => {
-              if (action) action.paused = true;
-            });
-          }
-        }
-        renderer.render(scene, camera);
+        let camera, scene, renderer, controls, mixer, clock;
+        const tooltip = document.getElementById('tooltip');
+        const loaderElement = document.getElementById('loader');
+        const progressTextElement = document.getElementById('progress-text');
+        const progressBarElement = document.getElementById('progress-bar');
         
-        const lblCurrent = document.getElementById("lblCurrentTime");
-        if (lblCurrent) lblCurrent.textContent = t.toFixed(1) + "s";
-      }
-    });
-    
-    const onScrubEnd = () => {
-      if (isScrubbing) {
-        isScrubbing = false;
-      }
-    };
-    scrubber.addEventListener("mouseup", onScrubEnd);
-    scrubber.addEventListener("touchend", onScrubEnd);
-  }
+        let allMeshes = [], selectableObjects = [], selectedObject = null;
+        let ffmthModel = null;
+        const originalMaterials = new Map();
+        let actions = {};
+        
+        // Timeline & Scrubber states
+        let isAnimPlaying = false;
+        let duration = 0;
+        let isScrubbing = false;
+        let wasPlayingBeforeScrub = false;
 
-  // Collapsible Telemetry Panel Toggler
-  const telemetryHeader = document.getElementById("telemetryHeader");
-  const telemetryBody = document.getElementById("telemetryBody");
-  const telemetryToggleArrow = document.getElementById("telemetryToggleArrow");
-  if (telemetryHeader && telemetryBody && telemetryToggleArrow) {
-    let isTelemetryExpanded = true;
-    telemetryHeader.addEventListener("click", () => {
-      isTelemetryExpanded = !isTelemetryExpanded;
-      if (isTelemetryExpanded) {
-        telemetryBody.style.maxHeight = "200px";
-        telemetryBody.style.opacity = "1";
-        telemetryBody.style.marginTop = "10px";
-        telemetryToggleArrow.style.transform = "rotate(0deg)";
-      } else {
-        telemetryBody.style.maxHeight = "0px";
-        telemetryBody.style.opacity = "0";
-        telemetryBody.style.marginTop = "0px";
-        telemetryToggleArrow.style.transform = "rotate(180deg)";
-      }
-    });
-  }
-
-  document.getElementById("reload").addEventListener("click", () => {
-    fitCameraToObject(currentModel);
-    if (actions.length > 0) {
-      updatePlayPauseUI(true);
-      if (mixer) mixer.time = 0;
-      
-      const dropdown = document.getElementById("animationSelect");
-      if (dropdown && dropdown.value === "all") {
-        actions.forEach(action => {
-          action.paused = false;
-          action.reset().play();
+        const highlightMaterial = new THREE.MeshStandardMaterial({ emissive: '#8b5cf6', emissiveIntensity: 0.6, color: '#8b5cf6', roughness: 0.3, metalness: 0.8 });
+        const fadedMaterial = new THREE.MeshStandardMaterial({ color: 0x2e3b5e, roughness: 0.8, metalness: 0.1, transparent: true, opacity: 0.15 });
+        const materialPresets = {
+            clay: { color: '#d9dde8', roughness: 0.84, metalness: 0.02, opacity: 1.0 }
+        };
+        let activeMaterialPreset = 'clay';
+        const presetMaterialCache = new Map();
+        const clayEdgeMaterial = new THREE.LineBasicMaterial({
+            color: '#1d2030',
+            transparent: true,
+            opacity: 0.72,
+            depthWrite: false
         });
-      } else if (dropdown && dropdown.value !== "") {
-        const idx = parseInt(dropdown.value);
-        actions.forEach((action, i) => {
-          if (i === idx) {
-            action.paused = false;
-            action.reset().play();
-          } else {
-            action.stop();
-          }
-        });
-      } else {
-        actions.forEach(action => {
-          action.paused = false;
-          action.reset().play();
-        });
-      }
-    }
-    showToast("相機與動畫已重設");
-  });
+        
+        const LOW_GLB_BASE64 = "Z2xURgIAAAAQpAAAxD8AAEpTT057ImFzc2V0Ijp7ImdlbmVyYXRvciI6Iktocm9ub3MgZ2xURiBCbGVuZGVyIEkvTyB2NC41LjUxIiwidmVyc2lvbiI6IjIuMCJ9LCJzY2VuZSI6MCwic2NlbmVzIjpbeyJleHRyYXMiOnsiYmxlbmRlcm1jcF9zZXJ2ZXJfcnVubmluZyI6MSwiRG9jUHJvcGVydGllcyI6e30sIkJJTVByb3BlcnRpZXMiOnt9LCJCSU1HZW9yZWZlcmVuY2VQcm9wZXJ0aWVzIjp7fSwiQklNQWdncmVnYXRlUHJvcGVydGllcyI6e30sIkJJTU5lc3RQcm9wZXJ0aWVzIjp7fSwiQklNTW9kZWxQcm9wZXJ0aWVzIjp7fSwiQklNQlNERFByb3BlcnRpZXMiOnt9LCJCSU1Qcm9qZWN0UHJvcGVydGllcyI6e30sIldlYlByb3BlcnRpZXMiOnt9LCJCSU1TeXN0ZW1Qcm9wZXJ0aWVzIjp7fSwiQklNR2VvbWV0cnlQcm9wZXJ0aWVzIjp7InJlcHJlc2VudGF0aW9uX29iaiI6e319fSwibmFtZSI6IlNjZW5lIiwibm9kZXMiOlswLDEsMiwzLDQsNSw2LDcsOCw5XX1dLCJub2RlcyI6W3siZXh0cmFzIjp7ImNvbXBvbmVudE5hbWUiOiIwMUEwMTAwIiwiZGlzcGxheU5hbWUiOiIwMUEwMTAwIiwic291cmNlQ29sbGVjdGlvbiI6IjAxQTAxMDAiLCJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IiLCJCSU1PYmplY3RQcm9wZXJ0aWVzIjp7fX0sIm1lc2giOjAsIm5hbWUiOiIwMUEwMTAwIiwic2NhbGUiOlszLjc5OTk5OTk1MjMxNjI4NCwyLjIxMDAwMDAzODE0Njk3MjcsMS40NjAwMDAwMzgxNDY5NzI3XSwidHJhbnNsYXRpb24iOlswLDAsMC40NzAwMDAwMjg2MTAyMjk1XX0seyJleHRyYXMiOnsiY29tcG9uZW50TmFtZSI6IjAxQTAzMDBMIiwiZGlzcGxheU5hbWUiOiIwMUEwMzAwTCIsInNvdXJjZUNvbGxlY3Rpb24iOiIwMUEwMzAwTCIsIm1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9LCJtZXNoIjoxLCJuYW1lIjoiMDFBMDMwMEwiLCJzY2FsZSI6WzAuNDc1MDAwMDIzODQxODU3OSwxLjc5OTk5OTk1MjMxNjI4NDIsMi4wNjk5OTk5MzMyNDI3OThdLCJ0cmFuc2xhdGlvbiI6Wy0xLjY2MjQ5OTkwNDYzMjU2ODQsMCwtMS4wMzQ5OTk5NjY2MjEzOTldfSx7ImV4dHJhcyI6eyJjb21wb25lbnROYW1lIjoiMDFBMDMwMFIiLCJkaXNwbGF5TmFtZSI6IjAxQTAzMDBSIiwic291cmNlQ29sbGVjdGlvbiI6IjAxQTAzMDBSIiwibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn0sIm1lc2giOjIsIm5hbWUiOiIwMUEwMzAwUiIsInNjYWxlIjpbMC40NzUwMDAwMjM4NDE4NTc5LDEuNzk5OTk5OTUyMzE2Mjg0MiwyLjA2OTk5OTkzMzI0Mjc5OF0sInRyYW5zbGF0aW9uIjpbMS42NjI0OTk5MDQ2MzI1Njg0LDAsLTEuMDM0OTk5OTY2NjIxMzk5XX0seyJleHRyYXMiOnsiY29tcG9uZW50TmFtZSI6IjAxQTA1MDAiLCJkaXNwbGF5TmFtZSI6IjAxQTA1MDAiLCJzb3VyY2VDb2xsZWN0aW9uIjoiMDFBMDUwMCIsIm1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9LCJtZXNoIjozLCJuYW1lIjoiMDFBMDUwMCIsInNjYWxlIjpbMi43NSwxLjE0OTk5OTk3NjE1ODE0MiwwLjkzNDk5OTk0Mjc3OTU0MV0sInRyYW5zbGF0aW9uIjpbMCwwLC0xLjI1MDk3NDY1NTE1MTM2NzJdfSx7ImV4dHJhcyI6eyJjb21wb25lbnROYW1lIjoiMDJBMDIwMSIsImRpc3BsYXlOYW1lIjoiMDJBMDIwMSIsInNvdXJjZUNvbGxlY3Rpb24iOiJGTVRIMDJBMDIwMSIsIm1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9LCJtZXNoIjo0LCJuYW1lIjoiMDJBMDIwMSIsInNjYWxlIjpbNC4yMTUwMDAxNTI1ODc4OTEsMC4zMTQ5MDkxMDA1MzI1MzE3NCwwLjMwNjcwNTk1MTY5MDY3MzgzXSwidHJhbnNsYXRpb24iOlswLDAuMDE3NDU4ODQ4NjU1MjIzODQ2LC0yLjU4MTY0MjYyNzcxNjA2NDVdfSx7ImV4dHJhcyI6eyJjb21wb25lbnROYW1lIjoiMDJEMDEwMCIsImRpc3BsYXlOYW1lIjoiMDJEMDEwMCIsInNvdXJjZUNvbGxlY3Rpb24iOiIwMkQwMTAwIiwibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn0sIm1lc2giOjUsIm5hbWUiOiIwMkQwMTAwIiwic2NhbGUiOls0LjgwNjAwMDIzMjY5NjUzMywxLjgwNTk5OTk5NDI3Nzk1NCwyLjAyOTk5OTk3MTM4OTc3MDVdLCJ0cmFuc2xhdGlvbiI6WzAsMCwtMy4wODUwMDAwMzgxNDY5NzI3XX0seyJleHRyYXMiOnsiY29tcG9uZW50TmFtZSI6IjAzQTAxMDEiLCJkaXNwbGF5TmFtZSI6IjAzQTAxMDEiLCJzb3VyY2VDb2xsZWN0aW9uIjoiVGlnaHRCb3hfMDNBTF9MK1RpZ2h0Qm94XzAzQUxfUiIsIm1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9LCJtZXNoIjo2LCJuYW1lIjoiMDNBMDEwMSIsInNjYWxlIjpbNC4yNDM5OTk5NTgwMzgzMywxLjQ1ODUzNzkzNjIxMDYzMjMsMS4wMDg5MDcwNzk2OTY2NTUzXSwidHJhbnNsYXRpb24iOlswLDAsLTIuNTk1MDAwMjY3MDI4ODA4Nl19LHsiZXh0cmFzIjp7ImNvbXBvbmVudE5hbWUiOiIwM0EwMUExIiwiZGlzcGxheU5hbWUiOiIwM0EwMUExIiwic291cmNlQ29sbGVjdGlvbiI6IjAzQTAxQTEiLCJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IifSwibWVzaCI6NywibmFtZSI6IjAzQTAxQTEiLCJzY2FsZSI6WzIuMDc5NjY3NTY4MjA2Nzg3LDAuNDY3OTc2MzYxNTEzMTM3OCwwLjk3MTcwMjMzNzI2NTAxNDZdLCJ0cmFuc2xhdGlvbiI6WzcuMjEyMTYyMDE3ODIyMjY2ZS0wNiwtMC4wMTIzMzY4MzUyNjUxNTk2MDcsLTIuMzI2ODU1MTgyNjQ3NzA1XX0seyJleHRyYXMiOnsiY29tcG9uZW50TmFtZSI6IjA0RDAxMDEiLCJkaXNwbGF5TmFtZSI6IjA0RDAxMDEiLCJzb3VyY2VDb2xsZWN0aW9uIjoiVGlnaHRCb3hfMDREMDEwMUxMT1dfTCtUaWdodEJveF8wNEQwMTAxTExPV19SIiwibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn0sIm1lc2giOjgsIm5hbWUiOiIwNEQwMTAxIiwic2NhbGUiOlszLjc3OTk5OTk3MTM4OTc3MDUsMC45OTk3OTc1ODI2MjYzNDI4LDAuOTk5OTc5OTcyODM5MzU1NV0sInRyYW5zbGF0aW9uIjpbMCwwLC0yLjU5NTAwMDAyODYxMDIyOTVdfSx7ImV4dHJhcyI6eyJjb21wb25lbnROYW1lIjoiMDVBMTAwMSIsImRpc3BsYXlOYW1lIjoiMDVBMTAwMSIsInNvdXJjZUNvbGxlY3Rpb24iOiJGTVRIMDVBIiwibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn0sIm1lc2giOjksIm5hbWUiOiIwNUExMDAxIiwic2NhbGUiOlsxLjA1OTk5OTk0Mjc3OTU0MSwwLjYxMjI4MjM5NTM2Mjg1NCwxLjE2OTExMDUzNjU3NTMxNzRdLCJ0cmFuc2xhdGlvbiI6WzAsMC4wMjMzMzIwNzQyODQ1NTM1MjgsLTIuODY3MzU3NzMwODY1NDc4NV19XSwiYW5pbWF0aW9ucyI6W3siY2hhbm5lbHMiOlt7InNhbXBsZXIiOjAsInRhcmdldCI6eyJub2RlIjowLCJwYXRoIjoidHJhbnNsYXRpb24ifX0seyJzYW1wbGVyIjoxLCJ0YXJnZXQiOnsibm9kZSI6MCwicGF0aCI6InJvdGF0aW9uIn19LHsic2FtcGxlciI6MiwidGFyZ2V0Ijp7Im5vZGUiOjAsInBhdGgiOiJzY2FsZSJ9fV0sIm5hbWUiOiIwMUEwMTAwLjAwMV9BY3Rpb24uMDAxIiwic2FtcGxlcnMiOlt7ImlucHV0IjoyMSwiaW50ZXJwb2xhdGlvbiI6IkxJTkVBUiIsIm91dHB1dCI6MjJ9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiU1RFUCIsIm91dHB1dCI6MjR9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiTElORUFSIiwib3V0cHV0IjoyNX1dfSx7ImNoYW5uZWxzIjpbeyJzYW1wbGVyIjowLCJ0YXJnZXQiOnsibm9kZSI6MSwicGF0aCI6InRyYW5zbGF0aW9uIn19LHsic2FtcGxlciI6MSwidGFyZ2V0Ijp7Im5vZGUiOjEsInBhdGgiOiJyb3RhdGlvbiJ9fSx7InNhbXBsZXIiOjIsInRhcmdldCI6eyJub2RlIjoxLCJwYXRoIjoic2NhbGUifX1dLCJuYW1lIjoiMDFBMDMwMEwuMDAxX0FjdGlvbi4wMDEiLCJzYW1wbGVycyI6W3siaW5wdXQiOjIxLCJpbnRlcnBvbGF0aW9uIjoiTElORUFSIiwib3V0cHV0IjoyNn0seyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJTVEVQIiwib3V0cHV0IjoyNH0seyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjI3fV19LHsiY2hhbm5lbHMiOlt7InNhbXBsZXIiOjAsInRhcmdldCI6eyJub2RlIjoyLCJwYXRoIjoidHJhbnNsYXRpb24ifX0seyJzYW1wbGVyIjoxLCJ0YXJnZXQiOnsibm9kZSI6MiwicGF0aCI6InJvdGF0aW9uIn19LHsic2FtcGxlciI6MiwidGFyZ2V0Ijp7Im5vZGUiOjIsInBhdGgiOiJzY2FsZSJ9fV0sIm5hbWUiOiIwMUEwMzAwUi4wMDFfQWN0aW9uLjAwMSIsInNhbXBsZXJzIjpbeyJpbnB1dCI6MjEsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjI4fSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjI0fSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IkxJTkVBUiIsIm91dHB1dCI6Mjd9XX0seyJjaGFubmVscyI6W3sic2FtcGxlciI6MCwidGFyZ2V0Ijp7Im5vZGUiOjMsInBhdGgiOiJ0cmFuc2xhdGlvbiJ9fSx7InNhbXBsZXIiOjEsInRhcmdldCI6eyJub2RlIjozLCJwYXRoIjoicm90YXRpb24ifX0seyJzYW1wbGVyIjoyLCJ0YXJnZXQiOnsibm9kZSI6MywicGF0aCI6InNjYWxlIn19XSwibmFtZSI6IjAxQTA1MDAuMDAxX0FjdGlvbi4wMDEiLCJzYW1wbGVycyI6W3siaW5wdXQiOjIxLCJpbnRlcnBvbGF0aW9uIjoiTElORUFSIiwib3V0cHV0IjoyOX0seyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJTVEVQIiwib3V0cHV0IjoyNH0seyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJTVEVQIiwib3V0cHV0IjozMH1dfSx7ImNoYW5uZWxzIjpbeyJzYW1wbGVyIjowLCJ0YXJnZXQiOnsibm9kZSI6NCwicGF0aCI6InRyYW5zbGF0aW9uIn19LHsic2FtcGxlciI6MSwidGFyZ2V0Ijp7Im5vZGUiOjQsInBhdGgiOiJyb3RhdGlvbiJ9fSx7InNhbXBsZXIiOjIsInRhcmdldCI6eyJub2RlIjo0LCJwYXRoIjoic2NhbGUifX1dLCJuYW1lIjoiMDJBMDIwMS4wMDFfQWN0aW9uLjAwMSIsInNhbXBsZXJzIjpbeyJpbnB1dCI6MjEsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjMxfSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjI0fSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjMyfV19LHsiY2hhbm5lbHMiOlt7InNhbXBsZXIiOjAsInRhcmdldCI6eyJub2RlIjo1LCJwYXRoIjoidHJhbnNsYXRpb24ifX0seyJzYW1wbGVyIjoxLCJ0YXJnZXQiOnsibm9kZSI6NSwicGF0aCI6InJvdGF0aW9uIn19LHsic2FtcGxlciI6MiwidGFyZ2V0Ijp7Im5vZGUiOjUsInBhdGgiOiJzY2FsZSJ9fV0sIm5hbWUiOiIwMkQwMTAwLjAwMV9BY3Rpb24uMDAxIiwic2FtcGxlcnMiOlt7ImlucHV0IjoyMSwiaW50ZXJwb2xhdGlvbiI6IkxJTkVBUiIsIm91dHB1dCI6MzN9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiU1RFUCIsIm91dHB1dCI6MjR9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiU1RFUCIsIm91dHB1dCI6MzR9XX0seyJjaGFubmVscyI6W3sic2FtcGxlciI6MCwidGFyZ2V0Ijp7Im5vZGUiOjYsInBhdGgiOiJ0cmFuc2xhdGlvbiJ9fSx7InNhbXBsZXIiOjEsInRhcmdldCI6eyJub2RlIjo2LCJwYXRoIjoicm90YXRpb24ifX0seyJzYW1wbGVyIjoyLCJ0YXJnZXQiOnsibm9kZSI6NiwicGF0aCI6InNjYWxlIn19XSwibmFtZSI6IjAzQTAxMDFfQWN0aW9uLjAwMSIsInNhbXBsZXJzIjpbeyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJTVEVQIiwib3V0cHV0IjozNX0seyJpbnB1dCI6MjMsImludGVycG9sYXRpb24iOiJTVEVQIiwib3V0cHV0IjoyNH0seyJpbnB1dCI6MjEsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjM2fV19LHsiY2hhbm5lbHMiOlt7InNhbXBsZXIiOjAsInRhcmdldCI6eyJub2RlIjo3LCJwYXRoIjoidHJhbnNsYXRpb24ifX0seyJzYW1wbGVyIjoxLCJ0YXJnZXQiOnsibm9kZSI6NywicGF0aCI6InJvdGF0aW9uIn19LHsic2FtcGxlciI6MiwidGFyZ2V0Ijp7Im5vZGUiOjcsInBhdGgiOiJzY2FsZSJ9fV0sIm5hbWUiOiIwM0EwMUExLjAwMV9BY3Rpb24uMDAxIiwic2FtcGxlcnMiOlt7ImlucHV0IjoyMSwiaW50ZXJwb2xhdGlvbiI6IkxJTkVBUiIsIm91dHB1dCI6Mzd9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiU1RFUCIsIm91dHB1dCI6MjR9LHsiaW5wdXQiOjIzLCJpbnRlcnBvbGF0aW9uIjoiU1RFUCIsIm91dHB1dCI6Mzh9XX0seyJjaGFubmVscyI6W3sic2FtcGxlciI6MCwidGFyZ2V0Ijp7Im5vZGUiOjgsInBhdGgiOiJ0cmFuc2xhdGlvbiJ9fSx7InNhbXBsZXIiOjEsInRhcmdldCI6eyJub2RlIjo4LCJwYXRoIjoicm90YXRpb24ifX0seyJzYW1wbGVyIjoyLCJ0YXJnZXQiOnsibm9kZSI6OCwicGF0aCI6InNjYWxlIn19XSwibmFtZSI6IjA0RDAxMDFfQWN0aW9uLjAwMSIsInNhbXBsZXJzIjpbeyJpbnB1dCI6MjEsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjM5fSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjI0fSx7ImlucHV0IjoyMSwiaW50ZXJwb2xhdGlvbiI6IkxJTkVBUiIsIm91dHB1dCI6NDB9XX0seyJjaGFubmVscyI6W3sic2FtcGxlciI6MCwidGFyZ2V0Ijp7Im5vZGUiOjksInBhdGgiOiJ0cmFuc2xhdGlvbiJ9fSx7InNhbXBsZXIiOjEsInRhcmdldCI6eyJub2RlIjo5LCJwYXRoIjoicm90YXRpb24ifX0seyJzYW1wbGVyIjoyLCJ0YXJnZXQiOnsibm9kZSI6OSwicGF0aCI6InNjYWxlIn19XSwibmFtZSI6IjA1QTEwMDFfQWN0aW9uLjAwMSIsInNhbXBsZXJzIjpbeyJpbnB1dCI6MjEsImludGVycG9sYXRpb24iOiJMSU5FQVIiLCJvdXRwdXQiOjQxfSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjI0fSx7ImlucHV0IjoyMywiaW50ZXJwb2xhdGlvbiI6IlNURVAiLCJvdXRwdXQiOjQyfV19XSwibWF0ZXJpYWxzIjpbeyJkb3VibGVTaWRlZCI6dHJ1ZSwibmFtZSI6IkZGTVRIX1Rvb25fMDFBMDEwMCIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuMTE5OTk5OTk3MzE3NzkwOTksMC40MTk5OTk5ODY4ODY5NzgxNSwwLjk0OTk5OTk4ODA3OTA3MSwxLjBdLCJtZXRhbGxpY0ZhY3RvciI6MC4wLCJyb3VnaG5lc3NGYWN0b3IiOjAuOTJ9LCJleHRyYXMiOnsibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn19LHsiZG91YmxlU2lkZWQiOnRydWUsIm5hbWUiOiJGRk1USF9Ub29uXzAxQTAzMDBMIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC45NDk5OTk5ODgwNzkwNzEsMC4yMTk5OTk5OTg4MDc5MDcxLDAuMjE5OTk5OTk4ODA3OTA3MSwxLjBdLCJtZXRhbGxpY0ZhY3RvciI6MC4wLCJyb3VnaG5lc3NGYWN0b3IiOjAuOTJ9LCJleHRyYXMiOnsibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn19LHsiZG91YmxlU2lkZWQiOnRydWUsIm5hbWUiOiJGRk1USF9Ub29uXzAxQTAzMDBSIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC45ODAwMDAwMTkwNzM0ODYzLDAuNTE5OTk5OTgwOTI2NTEzNywwLjExOTk5OTk5NzMxNzc5MDk5LDEuMF0sIm1ldGFsbGljRmFjdG9yIjowLjAsInJvdWdobmVzc0ZhY3RvciI6MC45Mn0sImV4dHJhcyI6eyJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IifX0seyJkb3VibGVTaWRlZCI6dHJ1ZSwibmFtZSI6IkZGTVRIX1Rvb25fMDFBMDUwMCIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuMTQwMDAwMDAwNTk2MDQ2NDUsMC43MjAwMDAwMjg2MTAyMjk1LDAuMzYwMDAwMDE0MzA1MTE0NzUsMS4wXSwibWV0YWxsaWNGYWN0b3IiOjAuMCwicm91Z2huZXNzRmFjdG9yIjowLjkyfSwiZXh0cmFzIjp7Im1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9fSx7ImRvdWJsZVNpZGVkIjp0cnVlLCJuYW1lIjoiRkZNVEhfVG9vbl8wMkEwMjAxIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC45ODAwMDAwMTkwNzM0ODYzLDAuODE5OTk5OTkyODQ3NDQyNiwwLjE4MDAwMDAwNzE1MjU1NzM3LDEuMF0sIm1ldGFsbGljRmFjdG9yIjowLjAsInJvdWdobmVzc0ZhY3RvciI6MC45Mn0sImV4dHJhcyI6eyJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IifX0seyJkb3VibGVTaWRlZCI6dHJ1ZSwibmFtZSI6IkZGTVRIX1Rvb25fMDJEMDEwMCIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuMzYwMDAwMDE0MzA1MTE0NzUsMC4yMzk5OTk5OTQ2MzU1ODE5NywwLjg5OTk5OTk3NjE1ODE0MjEsMS4wXSwibWV0YWxsaWNGYWN0b3IiOjAuMCwicm91Z2huZXNzRmFjdG9yIjowLjkyfSwiZXh0cmFzIjp7Im1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9fSx7ImRvdWJsZVNpZGVkIjp0cnVlLCJuYW1lIjoiRkZNVEhfVG9vbl8wM0EwMTAxIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC4wNzk5OTk5OTgyMTE4NjA2NiwwLjY5OTk5OTk4ODA3OTA3MSwwLjg3OTk5OTk5NTIzMTYyODQsMS4wXSwibWV0YWxsaWNGYWN0b3IiOjAuMCwicm91Z2huZXNzRmFjdG9yIjowLjkyfSwiZXh0cmFzIjp7Im1hdGVyaWFsU3R5bGUiOiJvcGFxdWVfY2FydG9vbl9jb2xvciJ9fSx7ImRvdWJsZVNpZGVkIjp0cnVlLCJuYW1lIjoiRkZNVEhfVG9vbl8wM0EwMUExIiwicGJyTWV0YWxsaWNSb3VnaG5lc3MiOnsiYmFzZUNvbG9yRmFjdG9yIjpbMC45NTk5OTk5Nzg1NDIzMjc5LDAuMzAwMDAwMDExOTIwOTI4OTYsMC42Mzk5OTk5ODU2OTQ4ODUzLDEuMF0sIm1ldGFsbGljRmFjdG9yIjowLjAsInJvdWdobmVzc0ZhY3RvciI6MC45Mn0sImV4dHJhcyI6eyJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IifX0seyJkb3VibGVTaWRlZCI6dHJ1ZSwibmFtZSI6IkZGTVRIX1Rvb25fMDREMDEwMSIsInBick1ldGFsbGljUm91Z2huZXNzIjp7ImJhc2VDb2xvckZhY3RvciI6WzAuNTc5OTk5OTgzMzEwNjk5NSwwLjc3OTk5OTk3MTM4OTc3MDUsMC4xODAwMDAwMDcxNTI1NTczNywxLjBdLCJtZXRhbGxpY0ZhY3RvciI6MC4wLCJyb3VnaG5lc3NGYWN0b3IiOjAuOTJ9LCJleHRyYXMiOnsibWF0ZXJpYWxTdHlsZSI6Im9wYXF1ZV9jYXJ0b29uX2NvbG9yIn19LHsiZG91YmxlU2lkZWQiOnRydWUsIm5hbWUiOiJGRk1USF9Ub29uXzA1QTEwMDEiLCJwYnJNZXRhbGxpY1JvdWdobmVzcyI6eyJiYXNlQ29sb3JGYWN0b3IiOlswLjgxOTk5OTk5Mjg0NzQ0MjYsMC4zNjAwMDAwMTQzMDUxMTQ3NSwwLjExOTk5OTk5NzMxNzc5MDk5LDEuMF0sIm1ldGFsbGljRmFjdG9yIjowLjAsInJvdWdobmVzc0ZhY3RvciI6MC45Mn0sImV4dHJhcyI6eyJtYXRlcmlhbFN0eWxlIjoib3BhcXVlX2NhcnRvb25fY29sb3IifX1dLCJtZXNoZXMiOlt7Im5hbWUiOiIwMUEwMTAwX1Rvb25fQm94X01lc2giLCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjowLCJOT1JNQUwiOjF9LCJpbmRpY2VzIjoyLCJtYXRlcmlhbCI6MH1dfSx7Im5hbWUiOiIwMUEwMzAwTF9Ub29uX0JveF9NZXNoIiwicHJpbWl0aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MywiTk9STUFMIjo0fSwiaW5kaWNlcyI6MiwibWF0ZXJpYWwiOjF9XX0seyJuYW1lIjoiMDFBMDMwMFJfVG9vbl9Cb3hfTWVzaCIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjUsIk5PUk1BTCI6Nn0sImluZGljZXMiOjIsIm1hdGVyaWFsIjoyfV19LHsibmFtZSI6IjAxQTA1MDBfVG9vbl9Cb3hfTWVzaCIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjcsIk5PUk1BTCI6OH0sImluZGljZXMiOjIsIm1hdGVyaWFsIjozfV19LHsibmFtZSI6IjAyQTAyMDFfVG9vbl9Cb3hfTWVzaCIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjksIk5PUk1BTCI6MTB9LCJpbmRpY2VzIjoyLCJtYXRlcmlhbCI6NH1dfSx7Im5hbWUiOiIwMkQwMTAwX1Rvb25fQm94X01lc2giLCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjoxMSwiTk9STUFMIjoxMn0sImluZGljZXMiOjIsIm1hdGVyaWFsIjo1fV19LHsibmFtZSI6IjAzQTAxMDFfVG9vbl9Cb3hfTWVzaCIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjEzLCJOT1JNQUwiOjE0fSwiaW5kaWNlcyI6MiwibWF0ZXJpYWwiOjZ9XX0seyJuYW1lIjoiMDNBMDFBMV9Ub29uX0JveF9NZXNoIiwicHJpbWl0aXZlcyI6W3siYXR0cmlidXRlcyI6eyJQT1NJVElPTiI6MTUsIk5PUk1BTCI6MTZ9LCJpbmRpY2VzIjoyLCJtYXRlcmlhbCI6N31dfSx7Im5hbWUiOiIwNEQwMTAxX1Rvb25fQm94X01lc2giLCJwcmltaXRpdmVzIjpbeyJhdHRyaWJ1dGVzIjp7IlBPU0lUSU9OIjoxNywiTk9STUFMIjoxOH0sImluZGljZXMiOjIsIm1hdGVyaWFsIjo4fV19LHsibmFtZSI6IjA1QTEwMDFfVG9vbl9Cb3hfTWVzaCIsInByaW1pdGl2ZXMiOlt7ImF0dHJpYnV0ZXMiOnsiUE9TSVRJT04iOjE5LCJOT1JNQUwiOjIwfSwiaW5kaWNlcyI6MiwibWF0ZXJpYWwiOjl9XX1dLCJhY2Nlc3NvcnMiOlt7ImJ1ZmZlclZpZXciOjAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MjQsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoyLCJjb21wb25lbnRUeXBlIjo1MTIzLCJjb3VudCI6MzYsInR5cGUiOiJTQ0FMQVIifSx7ImJ1ZmZlclZpZXciOjMsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3Ijo0LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MjQsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3Ijo1LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MjQsIm1heCI6WzAuNSwwLjUsMC41XSwibWluIjpbLTAuNSwtMC41LC0wLjVdLCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6NiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6NywiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJtYXgiOlswLjUsMC41LDAuNV0sIm1pbiI6Wy0wLjUsLTAuNSwtMC41XSwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjgsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjksImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxMCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MTEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxMiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MTMsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxNCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MTUsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxNiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MTcsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoxOCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MTksImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyNCwibWF4IjpbMC41LDAuNSwwLjVdLCJtaW4iOlstMC41LC0wLjUsLTAuNV0sInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoyMCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjI0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MjEsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNDQsIm1heCI6WzZdLCJtaW4iOlswLjA0MTY2NjY2NjY2NjY2NjY2NF0sInR5cGUiOiJTQ0FMQVIifSx7ImJ1ZmZlclZpZXciOjIyLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTQ0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MjMsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyLCJtYXgiOls2XSwibWluIjpbMC4wNDE2NjY2NjY2NjY2NjY2NjRdLCJ0eXBlIjoiU0NBTEFSIn0seyJidWZmZXJWaWV3IjoyNCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjIsInR5cGUiOiJWRUM0In0seyJidWZmZXJWaWV3IjoyNSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjIsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjoyNiwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE0NCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjI3LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MiwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjI4LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTQ0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MjksImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNDQsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjozMCwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjIsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjozMSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE0NCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjMyLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MiwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjMzLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTQ0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MzQsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyLCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MzUsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoyLCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6MzYsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNDQsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3IjozNywiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE0NCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjM4LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MiwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjM5LCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MTQ0LCJ0eXBlIjoiVkVDMyJ9LHsiYnVmZmVyVmlldyI6NDAsImNvbXBvbmVudFR5cGUiOjUxMjYsImNvdW50IjoxNDQsInR5cGUiOiJWRUMzIn0seyJidWZmZXJWaWV3Ijo0MSwiY29tcG9uZW50VHlwZSI6NTEyNiwiY291bnQiOjE0NCwidHlwZSI6IlZFQzMifSx7ImJ1ZmZlclZpZXciOjQyLCJjb21wb25lbnRUeXBlIjo1MTI2LCJjb3VudCI6MiwidHlwZSI6IlZFQzMifV0sImJ1ZmZlclZpZXdzIjpbeyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI4OCwiYnl0ZU9mZnNldCI6MCwidGFyZ2V0IjozNDk2Mn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI4OCwiYnl0ZU9mZnNldCI6Mjg4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6NzIsImJ5dGVPZmZzZXQiOjU3NiwidGFyZ2V0IjozNDk2M30seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI4OCwiYnl0ZU9mZnNldCI6NjQ4LCJ0YXJnZXQiOjM0OTYyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6Mjg4LCJieXRlT2Zmc2V0Ijo5MzYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjEyMjQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjE1MTIsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjE4MDAsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjIwODgsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjIzNzYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjI2NjQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjI5NTIsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjMyNDAsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjM1MjgsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjM4MTYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjQxMDQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjQzOTIsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjQ2ODAsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjQ5NjgsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjUyNTYsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyODgsImJ5dGVPZmZzZXQiOjU1NDQsInRhcmdldCI6MzQ5NjJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjo1NzYsImJ5dGVPZmZzZXQiOjU4MzJ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0Ijo2NDA4fSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6OCwiYnl0ZU9mZnNldCI6ODEzNn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjMyLCJieXRlT2Zmc2V0Ijo4MTQ0fSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjQsImJ5dGVPZmZzZXQiOjgxNzZ9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0Ijo4MjAwfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjQsImJ5dGVPZmZzZXQiOjk5Mjh9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0Ijo5OTUyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MTcyOCwiYnl0ZU9mZnNldCI6MTE2ODB9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoyNCwiYnl0ZU9mZnNldCI6MTM0MDh9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0IjoxMzQzMn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI0LCJieXRlT2Zmc2V0IjoxNTE2MH0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjE3MjgsImJ5dGVPZmZzZXQiOjE1MTg0fSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjQsImJ5dGVPZmZzZXQiOjE2OTEyfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MjQsImJ5dGVPZmZzZXQiOjE2OTM2fSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MTcyOCwiYnl0ZU9mZnNldCI6MTY5NjB9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0IjoxODY4OH0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI0LCJieXRlT2Zmc2V0IjoyMDQxNn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjE3MjgsImJ5dGVPZmZzZXQiOjIwNDQwfSx7ImJ1ZmZlciI6MCwiYnl0ZUxlbmd0aCI6MTcyOCwiYnl0ZU9mZnNldCI6MjIxNjh9LHsiYnVmZmVyIjowLCJieXRlTGVuZ3RoIjoxNzI4LCJieXRlT2Zmc2V0IjoyMzg5Nn0seyJidWZmZXIiOjAsImJ5dGVMZW5ndGgiOjI0LCJieXRlT2Zmc2V0IjoyNTYyNH1dLCJidWZmZXJzIjpbeyJieXRlTGVuZ3RoIjoyNTY0OH1dfSAgMGQAAEJJTgAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAABAAQABwABAAcACgANABYAEwANABMAEAAAAAwADwAAAA8AAwAFABEAFAAFABQACAAGABIAFQAGABUACQALABcADgALAA4AAgAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAC/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAD8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAA/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAvwAAAL8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAC/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAD8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAA/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAC/AAAAPwAAAL8AAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAPwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIA/AAAAAAAAAAAAAAAAAAAAAAAAgL8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIC/AAAAAAAAAAAAAAAAAAAAAAAAgD8AAAAAAACAvwAAAAAAAIA/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AAAAAG8aUUAAAAAAAAAAAMZxU0AAAAAAAAAAAAqUVUAAAAAAAAAAAOJ+V0AAAAAAAAAAAO4vWUAAAAAAAAAAANKkWkAAAAAAAAAAADbbW0AAAAAAAAAAALrQXEAAAAAAAAAAAAKDXUAAAAAAAAAAALrvXUAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkAAAAAAAAAAAHoUXkCrqio9AADAQAAAAAAAAAAAAAAAgAAAgD8AAAAAAAAAAAAAAIAAAIA/MzNzQKRwDUBI4bo/MzNzQKRwDUBG4bo/zMzUvwAAAADheoS/0P3UvwAAAADheoS/wI7VvwAAAADheoS/eHzWvwAAAADheoS/1MPXvwAAAADheoS/rGHZvwAAAADheoS/3lLbvwAAAADheoS/QpTdvwAAAADheoS/tiLgvwAAAADheoS/E/vivwAAAADheoS/NBrmvwAAAADheoS/8nzpvwAAAADheoS/LCDtvwAAAADheoS/uQDxvwAAAADheoS/dhv1vwAAAADheoS/PW35vwAAAADheoS/6vL9vwAAAADheoS/q1QBwAAAAADheoS/rsYDwAAAAADheoS/7E0GwAAAAADheoS/0+gIwAAAAADheoS/z5ULwAAAAADheoS/TlMOwAAAAADheoS/vR8RwAAAAADheoS/i/kTwAAAAADheoS/JN8WwAAAAADheoS/9s4ZwAAAAADheoS/bcccwAAAAADheoS/+MYfwAAAAADheoS/BcwiwAAAAADheoS//9QlwAAAAADheoS/VuAowAAAAADheoS/d+wrwAAAAADheoS/zfcuwAAAAADheoS/yAAywAAAAADheoS/1AU1wAAAAADheoS/YAU4wAAAAADheoS/1/06wAAAAADheoS/qe09wAAAAADheoS/QtNAwAAAAADheoS/EK1DwAAAAADheoS/f3lGwAAAAADheoS//zZJwAAAAADheoS/+uNLwAAAAADheoS/4X5OwAAAAADheoS/HgZRwAAAAADheoS/IXhTwAAAAADheoS/WNNVwAAAAADheoS/LhZYwAAAAADheoS/ET9awAAAAADheoS/cExcwAAAAADheoS/tzxewAAAAADheoS/VA5gwAAAAADheoS/sr9hwAAAAADheoS/Qk9jwAAAAADheoS/cbtkwAAAAADheoS/qwJmwAAAAADheoS/XiNnwAAAAADheoS/9htowAAAAADheoS/4+powAAAAADheoS/j45pwAAAAADheoS/bAVqwAAAAADheoS/5U1qwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/ZmZqwAAAAADheoS/NDPzPmZm5j/hegRAODPzPmZm5j/hegRAzMzUPwAAAADheoS/0P3UPwAAAADheoS/wI7VPwAAAADheoS/eHzWPwAAAADheoS/1MPXPwAAAADheoS/rGHZPwAAAADheoS/3lLbPwAAAADheoS/QpTdPwAAAADheoS/tiLgPwAAAADheoS/E/viPwAAAADheoS/NBrmPwAAAADheoS/8nzpPwAAAADheoS/LCDtPwAAAADheoS/uQDxPwAAAADheoS/dhv1PwAAAADheoS/PW35PwAAAADheoS/6vL9PwAAAADheoS/q1QBQAAAAADheoS/rsYDQAAAAADheoS/7E0GQAAAAADheoS/0+gIQAAAAADheoS/z5ULQAAAAADheoS/TlMOQAAAAADheoS/vR8RQAAAAADheoS/i/kTQAAAAADheoS/JN8WQAAAAADheoS/9s4ZQAAAAADheoS/bcccQAAAAADheoS/+MYfQAAAAADheoS/BcwiQAAAAADheoS//9QlQAAAAADheoS/VuAoQAAAAADheoS/d+wrQAAAAADheoS/zfcuQAAAAADheoS/yAAyQAAAAADheoS/1AU1QAAAAADheoS/YAU4QAAAAADheoS/1/06QAAAAADheoS/qe09QAAAAADheoS/QtNAQAAAAADheoS/EK1DQAAAAADheoS/f3lGQAAAAADheoS//zZJQAAAAADheoS/+uNLQAAAAADheoS/4X5OQAAAAADheoS/HgZRQAAAAADheoS/IXhTQAAAAADheoS/WNNVQAAAAADheoS/LhZYQAAAAADheoS/ET9aQAAAAADheoS/cExcQAAAAADheoS/tzxeQAAAAADheoS/VA5gQAAAAADheoS/sr9hQAAAAADheoS/Qk9jQAAAAADheoS/cbtkQAAAAADheoS/qwJmQAAAAADheoS/XiNnQAAAAADheoS/9htoQAAAAADheoS/4+poQAAAAADheoS/j45pQAAAAADheoS/bAVqQAAAAADheoS/5U1qQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/ZmZqQAAAAADheoS/AAAAAAAAAADwH6C/AAAAAAAAAADt7p+/AAAAAAAAAAD9XZ+/AAAAAAAAAABEcJ6/AAAAAAAAAADpKJ2/AAAAAAAAAAAQi5u/AAAAAAAAAADfmZm/AAAAAAAAAAB6WJe/AAAAAAAAAAAGypS/AAAAAAAAAACq8ZG/AAAAAAAAAACJ0o6/AAAAAAAAAADKb4u/AAAAAAAAAACRzIe/AAAAAAAAAAAE7IO/AAAAAAAAAACOon+/AAAAAAAAAAAA/3a/AAAAAAAAAACm822/AAAAAAAAAADOhmS/AAAAAAAAAADAvlq/AAAAAAAAAADIoVC/AAAAAAAAAAAuNka/AAAAAAAAAAA+gju/AAAAAAAAAABCjDC/AAAAAAAAAACEWiW/AAAAAAAAAABO8xm/AAAAAAAAAADqXA6/AAAAAAAAAACjnQK/AAAAAAAAAACMd+2+AAAAAAAAAAAwe9W+AAAAAAAAAADMUr2+AAAAAAAAAAD4CqW+AAAAAAAAAABAsIy+AAAAAAAAAAB4nmi+AAAAAAAAAAAQ6Te+AAAAAAAAAABgWQe+AAAAAAAAAABAEa69AAAAAAAAAACgPxy9AAAAAAAAAAAAeQc8AAAAAAAAAADA0l09AAAAAAAAAACAnMs9AAAAAAAAAAAYaxM+AAAAAAAAAAAQMkA+AAAAAAAAAAAICmw+AAAAAAAAAADgbIs+AAAAAAAAAAAURKA+AAAAAAAAAAAAfrQ+AAAAAAAAAAAYDsg+AAAAAAAAAADQ59o+AAAAAAAAAAB8/uw+AAAAAAAAAACYRf4+AAAAAAAAAABIWAc/AAAAAAAAAABkGQ8/AAAAAAAAAADYXxY/AAAAAAAAAABQJR0/AAAAAAAAAACQYyM/AAAAAAAAAABMFCk/AAAAAAAAAAA0MS4/AAAAAAAAAAAAtDI/AAAAAAAAAABgljY/AAAAAAAAAAAU0jk/AAAAAAAAAADEYDw/AAAAAAAAAAA4PD4/AAAAAAAAAAAcXj8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAAAAAAAAAgwD8/AAAwQDMzkz8oXG8/AAAwQDMzkz8oXG8/AAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAAAAAANwFjzyiOSXAALjzOtwFjzyiOSXAAKrxO9wFjzyiOSXAgMiGPNwFjzyiOSXAgJHtPNwFjzyiOSXA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AAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAAAAAAAAAAABSuMLAwcqZQAIr5z+F6wFAwcqZQAIr5z+G6wFAAAAAAAAAAAB8FCbAAAAAAAAAAAB8FCbA2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/2c6HQF+xuj/eI4E/i/yHQF+xuj/eI4E/GISIQF+xuj/eI4E/M2OJQF+xuj/eI4E/jZeKQF+xuj/eI4E/2R6MQF+xuj/eI4E/yfaNQF+xuj/eI4E/Dh2QQF+xuj/eI4E/XI+SQF+xuj/eI4E/ZEuVQF+xuj/eI4E/2U6YQF+xuj/eI4E/bJebQF+xuj/eI4E/0SKfQF+xuj/eI4E/uO6iQF+xuj/eI4E/1fimQF+xuj/eI4E/2j6rQF+xuj/eI4E/d76vQF+xuj/eI4E/YHW0QF+xuj/eI4E/SGG5QF+xuj/eI4E/33++QF+xuj/eI4E/2c7DQF+xuj/eI4E/6EvJQF+xuj/eI4E/vPTOQF+xuj/eI4E/CsfUQF+xuj/eI4E/hMDaQF+xuj/eI4E/2d7gQF+xuj/eI4E/vx/nQF+xuj/eI4E/5YDtQF+xuj/eI4E/AAD0QF+xuj/eI4E/wpr6QF+xuj/eI4E/bKcAQV+xuj/eI4E//gwEQV+xuj/eI4E/7nwHQV+xuj/eI4E/FPYKQV+xuj/eI4E/THcOQV+xuj/eI4E/bP8RQV+xuj/eI4E/UI0VQV+xuj/eI4E/zx8ZQV+xuj/eI4E/wrUcQV+xuj/eI4E/BE4gQV+xuj/eI4E/bOcjQV+xuj/eI4E/1IAnQV+xuj/eI4E/FhkrQV+xuj/eI4E/C68uQV+xuj/eI4E/ikEyQV+xuj/eI4E/bM81QV+xuj/eI4E/jlc5QV+xuj/eI4E/xNg8QV+xuj/eI4E/7FFAQV+xuj/eI4E/2sFDQV+xuj/eI4E/bCdHQV+xuj/eI4E/eIFKQV+xuj/eI4E/2M5NQV+xuj/eI4E/Zg5RQV+xuj/eI4E/+D5UQV+xuj/eI4E/bF9XQV+xuj/eI4E/lm5aQV+xuj/eI4E/VGtdQV+xuj/eI4E/eFRgQV+xuj/eI4E/5ihjQV+xuj/eI4E/bOdlQV+xuj/eI4E/6I5oQV+xuj/eI4E/Nh5rQV+xuj/eI4E/KJRtQV+xuj/eI4E/nu9vQV+xuj/eI4E/bC9yQV+xuj/eI4E/blJ0QV+xuj/eI4E/eld2QV+xuj/eI4E/cD14QV+xuj/eI4E/IgN6QV+xuj/eI4E/bKd7QV+xuj/eI4E/KCl9QV+xuj/eI4E/Kod+QV+xuj/eI4E/UsB/QV+xuj/eI4E/ummAQV+xuj/eI4E/tt+AQV+xuj/eI4E/iEGBQV+xuj/eI4E/oI6BQV+xuj/eI4E/Z8aBQV+xuj/eI4E/SuiBQV+xuj/eI4E/tvOBQV+xuj/eI4E/AADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSrwy6xTAAADyNnAgSryV4xTAAADyNnAgSrz+zBTAAADyNnAgSrzOpxTAAADyNnAgSrxqdBTAAADyNnAgSrwyMxTAAADyNnAgSryK5BPAAADyNnAgSrzUiBPAAADyNnAgSrxyIBPAAADyNnAgSrzGqxLAAADyNnAgSrwyKxLAAADyNnAgSrwanxHAAADyNnAgSrzeBxHAAADyNnAgSrziZRDAAADyNnAgSryIuQ/AAADyNnAgSrwyAw/AAADyNnAgSrxDQw7AAADyNnAgSrwceg3AAADyNnAgSrwgqAzAAADyNnAgSryyzQvAAADyNnAgSrwy6wrAAADyNnAgSrwGAQrAAADyNnAgSryMDwnAAADyNnAgSrwqFwjAAADyNnAgSrxBGAfAAADyNnAgSrwyEwbAAADyNnAgSrxiCAXAAADyNnAgSrww+APAAADyNnAgSrwC4wLAAADyNnAgSrw2yQHAAADyNnAgSrwyqwDAAADyNnAgSryvEv+/AADyNnAgSrwPyPy/AADyNnAgSrxLd/q/AADyNnAgSrwlIfi/AADyNnAgSrxlxvW/AADyNnAgSrzNZ/O/AADyNnAgSrwjBvG/AADyNnAgSrwrou6/AADyNnAgSryqPOy/AADyNnAgSrxl1um/AADyNnAgSrwfcOe/AADyNnAgSryfCuW/AADyNnAgSrympuK/AADyNnAgSrz9ROC/AADyNnAgSrxl5t2/AADyNnAgSryli9u/AADyNnAgSryANdm/AADyNnAgSry75Na/AADyNnAgSrwbmtS/AADyNnAgSrxlVtK/AADyNnAgSrxdGtC/AADyNnAgSrzH5s2/AADyNnAgSrxpvMu/AADyNnAgSrwHnMm/AADyNnAgSrxlhse/AADyNnAgSrxJfMW/AADyNnAgSrx1fsO/AADyNnAgSryyjcG/AADyNnAgSry/qr+/AADyNnAgSrxl1r2/AADyNnAgSrxnEby/AADyNnAgSryLXLq/AADyNnAgSryTuLi/AADyNnAgSrxEJre/AADyNnAgSrxlprW/AADyNnAgSry5ObS/AADyNnAgSrwG4bK/AADyNnAgSrwMnbG/AADyNnAgSryWbrC/AADyNnAgSrxlVq+/AADyNnAgSrw+Va6/AADyNnAgSrzma62/AADyNnAgSrwhm6y/AADyNnAgSry246u/AADyNnAgSrxlRqu/AADyNnAgSrz2w6q/AADyNnAgSrwtXaq/AADyNnAgSrzOEqq/AADyNnAgSryh5am/AADyNnAgSrxl1qm/RhkFQJma7z58wXg/RhkFQJma7z58wXg/AAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAAAAAAAAAAAB7FCbAALBzOQAAAAB7FCbAAKhxOgAAAAB7FCbAAMkGOwAAAAB7FCbAAJFtOwAAAAB7FCbAAAC4OwAAAAB7FCbAAFQDPAAAAAB7FCbAAC8xPAAAAAB7FCbAAGBlPAAAAAB7FCbAANuPPAAAAAB7FCbAAACwPAAAAAB7FCbAQAbTPAAAAAB7FCbAANX4PAAAAAB7FCbAAKoQPQAAAAB7FCbAQDUmPQAAAAB7FCbAAAA9PQAAAAB7FCbAAP5UPQAAAAB7FCbAwCJuPQAAAAB7FCbAMDGEPQAAAAB7FCbAENiRPQAAAAB7FCbAAACgPQAAAAB7FCbA0KKuPQAAAAB7FCbAYLq9PQAAAAB7FCbAkEDNPQAAAAB7FCbAEC/dPQAAAAB7FCbAAIDtPQAAAAB7FCbAIC3+PQAAAAB7FCbAGJgHPgAAAAB7FCbAkEEQPgAAAAB7FCbA4A8ZPgAAAAB7FCbAAAAiPgAAAAB7FCbA0A4rPgAAAAB7FCbAYDk0PgAAAAB7FCbAYHw9PgAAAAB7FCbAANVGPgAAAAB7FCbAAEBQPgAAAAB7FCbAYLpZPgAAAAB7FCbAAEFjPgAAAAB7FCbA4NBsPgAAAAB7FCbA4GZ2PgAAAAB7FCbAAACAPgAAAAB7FCbAiMyEPgAAAAB7FCbAkJeJPgAAAAB7FCbAgF+OPgAAAAB7FCbA0CKTPgAAAAB7FCbAAOCXPgAAAAB7FCbAgJWcPgAAAAB7FCbA0EGhPgAAAAB7FCbAUOOlPgAAAAB7FCbAkHiqPgAAAAB7FCbAAACvPgAAAAB7FCbACHizPgAAAAB7FCbAMN+3PgAAAAB7FCbA+DO8PgAAAAB7FCbAwHTAPgAAAAB7FCbAAKDEPgAAAAB7FCbAQLTIPgAAAAB7FCbA4K/MPgAAAAB7FCbAcJHQPgAAAAB7FCbASFfUPgAAAAB7FCbAAADYPgAAAAB7FCbA+InbPgAAAAB7FCbAuPPePgAAAAB7FCbAoDviPgAAAAB7FCbAQGDlPgAAAAB7FCbAAGDoPgAAAAB7FCbAWDnrPgAAAAB7FCbAwOrtPgAAAAB7FCbAqHLwPgAAAAB7FCbAoM/yPgAAAAB7FCbAAAD1PgAAAAB7FCbAWAL3PgAAAAB7FCbACNX4PgAAAAB7FCbAiHb6PgAAAAB7FCbAaOX7PgAAAAB7FCbAACD9PgAAAAB7FCbA2CT+PgAAAAB7FCbAcPL+PgAAAAB7FCbAGIf/PgAAAAB7FCbAkOH/PgAAAAB7FCbAAAAAPwAAAAB7FCbAhetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/hetxQLzyfz+w/n8/EDByQLzyfz+w/n8/ZPtyQLzyfz+w/n8/DEp0QLzyfz+w/n8/lBh2QLzyfz+w/n8/hWN4QLzyfz+w/n8/bCd7QLzyfz+w/n8/1WB+QLzyfz+w/n8/JQaBQLzyfz+w/n8/KxODQLzyfz+w/n8/w1WFQLzyfz+w/n8/MsyHQLzyfz+w/n8/vHSKQLzyfz+w/n8/qk2NQLzyfz+w/n8/QFWQQLzyfz+w/n8/w4mTQLzyfz+w/n8/eemWQLzyfz+w/n8/qHKaQLzyfz+w/n8/liOeQLzyfz+w/n8/iPqhQLzyfz+w/n8/wvWlQLzyfz+w/n8/jhOqQLzyfz+w/n8/LVKuQLzyfz+w/n8/6K+yQLzyfz+w/n8/Aiu3QLzyfz+w/n8/wsG7QLzyfz+w/n8/b3LAQLzyfz+w/n8/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";
+        const HAS_LOW_EMBED = true;
+        const LOW_GLB_URL = "./glb/FFMTH_Low.glb";
+        const HIGH_GLB_URL = "./glb/FFMTH_high.glb";
+        const componentAliases = [
+            { key: '01A0100', aliases: ['01A0100'] },
+            { key: '01A0300L', aliases: ['01A0300L', 'FMTH01A0300L'] },
+            { key: '01A0300R', aliases: ['01A0300R'] },
+            { key: '01A0500', aliases: ['01A0500'] },
+            { key: '02A0201', aliases: ['02A0201', '2A0201LOW'] },
+            { key: '02D0100', aliases: ['02D0100', 'FMTH02D0100'] },
+            { key: '03A0101', aliases: ['03A0101', '03AL'] },
+            { key: '03A01A1', aliases: ['03A01A1'] },
+            { key: '04D0101', aliases: ['04D0101', '04D0101LLOW'] },
+            { key: '05A1001', aliases: ['05A1001', 'FMTH05A', '05A'] }
+        ];
 
-  const materialSelect = document.getElementById("materialModeSelect");
-  materialSelect.value = currentMaterialMode;
-  materialSelect.addEventListener("change", (e) => {
-    applyMaterialMode(e.target.value);
-    showToast("材質渲染模式已切換為: " + (e.target.value === "clay-outline" ? "白模加線條" : "原始 PBR 材質"));
-  });
-
-  document.getElementById("opacitySlider").addEventListener("input", (e) => {
-    const val = e.target.value;
-    document.getElementById("opv").textContent = val + "%";
-    if (currentModel) {
-      currentModel.traverse(obj => {
-        if (obj.isMesh) {
-          obj.material.transparent = true;
-          obj.material.opacity = val / 100;
+        function normalizeName(name) {
+            return String(name || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
         }
-      });
-    }
-  });
 
-  document.querySelectorAll(".assembly-item").forEach(item => {
-    item.addEventListener("click", () => {
-      const name = item.getAttribute("data-name");
-      selectComponent(name);
-      closeDrawer();
-      try {
-        window.parent.postMessage({
-          type: "forklift_selected_object",
-          objectName: name
-        }, "*");
-      } catch(err) {
-        console.warn("postMessage failed:", err);
-      }
-    });
-  });
-
-  function init(){
-    // MAIN SCENE
-    scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x060814);
-
-    camera = new THREE.PerspectiveCamera(45, window.innerWidth/window.innerHeight, 0.01, 10000);
-    camera.position.set(3,2,4);
-
-    renderer = new THREE.WebGLRenderer({canvas: mainCanvas, antialias:true});
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
-    renderer.setSize(window.innerWidth,window.innerHeight);
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-
-    // SCADA lighting
-    scene.add(new THREE.HemisphereLight(0xffffff,0x1e1b4b,2.2));
-    const d1 = new THREE.DirectionalLight(0x8b5cf6,1.5);
-    d1.position.set(5,8,6);
-    scene.add(d1);
-    const d2 = new THREE.DirectionalLight(0x3b82f6,1.0);
-    d2.position.set(-5,-8,-6);
-    scene.add(d2);
-
-    loader = new GLTFLoader();
-    window.addEventListener("resize", onResize);
-    setupPipControls();
-
-    // Raycasting click logic for detail selector
-    const raycaster = new THREE.Raycaster();
-    const mouse = new THREE.Vector2();
-
-    mainCanvas.addEventListener("pointerdown", (event) => {
-      const clickStartX = event.clientX;
-      const clickStartY = event.clientY;
-
-      const onPointerUp = (upEvent) => {
-        mainCanvas.removeEventListener("pointerup", onPointerUp);
-        const dist = Math.hypot(upEvent.clientX - clickStartX, upEvent.clientY - clickStartY);
-        if (dist > 5) return; // Ignore drag clicks
-
-        mouse.x = (upEvent.clientX / window.innerWidth) * 2 - 1;
-        mouse.y = -(upEvent.clientY / window.innerHeight) * 2 + 1;
-
-        raycaster.setFromCamera(mouse, camera);
-        if (!currentModel) return;
-
-        const intersects = raycaster.intersectObject(currentModel, true);
-
-        if (intersects.length > 0) {
-          let clickedObj = intersects[0].object;
-          while (clickedObj && clickedObj !== currentModel) {
-            // Skip generated edge-line objects; only stop at named mesh nodes
-            if (clickedObj.name && clickedObj.name.trim() !== "" && !clickedObj.userData.generatedEdges) {
-              break;
+        function resolveComponentName(name) {
+            const normalized = normalizeName(name);
+            if (!normalized) return null;
+            for (const item of componentAliases) {
+                if (item.aliases.some(alias => {
+                    const normalizedAlias = normalizeName(alias);
+                    return normalized.includes(normalizedAlias) || normalizedAlias.includes(normalized);
+                })) {
+                    return item.key;
+                }
             }
-            clickedObj = clickedObj.parent;
-          }
+            return null;
+        }
 
-          if (clickedObj && clickedObj.name) {
-            const name = clickedObj.name;
-            console.log("3D Canvas Clicked Mesh:", name);
-            selectComponent(name);
+        function resolveObjectComponentName(object) {
+            let current = object;
+            while (current) {
+                const matched = resolveComponentName(current.userData?.componentName || current.name);
+                if (matched) return matched;
+                current = current.parent;
+            }
+            return null;
+        }
+
+        function findSelectableObject(componentName) {
+            const target = normalizeName(resolveComponentName(componentName));
+            if (!target) return null;
+            return selectableObjects.find(obj => normalizeName(resolveObjectComponentName(obj)).includes(target)) || null;
+        }
+
+        function disposeMaterial(material) {
+            if (!material) return;
+            if (Array.isArray(material)) {
+                material.forEach(disposeMaterial);
+                return;
+            }
+            if (material.dispose) material.dispose();
+        }
+
+        function disposePresetMaterials() {
+            presetMaterialCache.forEach(disposeMaterial);
+            presetMaterialCache.clear();
+        }
+
+        function applyPresetProperties(material, preset) {
+            if (!material || !preset) return material;
+            if (material.color) material.color.set(preset.color);
+            if ('roughness' in material) material.roughness = preset.roughness;
+            if ('metalness' in material) material.metalness = preset.metalness;
+            material.transparent = preset.opacity < 1;
+            material.opacity = preset.opacity;
+            material.depthWrite = preset.opacity >= 1;
+            if (material.emissive) material.emissive.set('#000000');
+            material.needsUpdate = true;
+            return material;
+        }
+
+        function cloneMaterialWithPreset(originalMaterial, preset) {
+            if (Array.isArray(originalMaterial)) {
+                return originalMaterial.map(material => cloneMaterialWithPreset(material, preset));
+            }
+            const material = originalMaterial?.clone ? originalMaterial.clone() : new THREE.MeshStandardMaterial();
+            return applyPresetProperties(material, preset);
+        }
+
+        function getDisplayMaterial(mesh) {
+            const originalMat = originalMaterials.get(mesh.uuid);
+            if (activeMaterialPreset === 'original') return originalMat;
+            if (presetMaterialCache.has(mesh.uuid)) return presetMaterialCache.get(mesh.uuid);
+            const material = cloneMaterialWithPreset(originalMat, materialPresets[activeMaterialPreset]);
+            presetMaterialCache.set(mesh.uuid, material);
+            return material;
+        }
+
+        function addClayEdges(mesh) {
+            if (!mesh.geometry || mesh.userData.clayEdges) return;
+            const edges = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry, 28), clayEdgeMaterial);
+            edges.name = 'clay_outline_edges';
+            edges.renderOrder = 3;
+            mesh.add(edges);
+            mesh.userData.clayEdges = edges;
+        }
+
+        function setMaterialPreset(presetName) {
+            if (presetName !== 'original' && !Object.prototype.hasOwnProperty.call(materialPresets, presetName)) return;
+            activeMaterialPreset = presetName;
+            disposePresetMaterials();
+            updateObjectMaterials();
+            const materialSelect = document.getElementById('materialSelectBottom');
+            if (materialSelect) materialSelect.value = presetName;
+        }
+
+        init();
+        animate();
+
+        function init() {
+            clock = new THREE.Clock();
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.0;
+            document.body.appendChild(renderer.domElement);
+
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color('#060814');
+
+            camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+            camera.position.set(0, 1.5, 4);
+
+            const environment = new RoomEnvironment(renderer);
+            const pmremGenerator = new THREE.PMREMGenerator(renderer);
+            scene.environment = pmremGenerator.fromScene(environment).texture;
+            environment.dispose();
+            pmremGenerator.dispose();
+
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
+
+            loadLowFfmth();
+
+            window.addEventListener('resize', onWindowResize);
+            renderer.domElement.addEventListener('click', onCanvasClick);
+            renderer.domElement.addEventListener('pointermove', onPointerMove);
+            renderer.domElement.addEventListener('pointerout', () => {
+                document.body.style.cursor = 'auto';
+                tooltip.style.display = 'none';
+            });
+
+            setupTimelineEvents();
+            setupCommunication();
+        }
+
+        function base64ToArrayBuffer(base64) {
+            const binary = window.atob(base64);
+            const bytes = new Uint8Array(binary.length);
+            for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+            return bytes.buffer;
+        }
+
+        function loadLowFfmth() {
+            const loader = new GLTFLoader();
+            if (HAS_LOW_EMBED && LOW_GLB_BASE64) {
+                progressTextElement.textContent = 'Loading FFMTH Box Low from Base64...';
+                progressBarElement.style.width = '35%';
+                loader.parse(base64ToArrayBuffer(LOW_GLB_BASE64), '', (gltf) => {
+                    loadSuccess(gltf, "LOW / Base64");
+                    loadHighFfmth();
+                }, (err) => {
+                    console.error("Parsing FFMTH low Base64 failed:", err);
+                    progressTextElement.textContent = 'Error parsing FFMTH Low Base64.';
+                });
+                return;
+            }
+            loader.load(LOW_GLB_URL, (gltf) => {
+                loadSuccess(gltf, "LOW / External");
+                loadHighFfmth();
+            }, (xhr) => updateProgress(xhr, 'Streaming FFMTH Box Low... '), (err) => {
+                console.error("Loading FFMTH low failed:", err);
+                progressTextElement.textContent = 'Error loading FFMTH Low.';
+            });
+        }
+
+        function loadHighFfmth() {
+            const loader = new GLTFLoader();
+            loader.load(HIGH_GLB_URL, (gltf) => {
+                loadSuccess(gltf, "HIGH / External");
+            }, (xhr) => updateProgress(xhr, 'Streaming FFMTH High Assembly... '), (err) => {
+                console.warn("Loading FFMTH high failed; keeping Low model visible.", err);
+                loaderElement.style.opacity = 0;
+                setTimeout(() => {
+                    loaderElement.style.display = 'none';
+                }, 500);
+            });
+        }
+
+        function updateProgress(xhr, prefix) {
+            if (xhr.total > 0) {
+                const percentage = (xhr.loaded / xhr.total) * 100;
+                const roundedPercentage = Math.round(percentage);
+                progressTextElement.textContent = prefix + roundedPercentage + '%';
+                progressBarElement.style.width = roundedPercentage + '%';
+            }
+        }
+
+        function loadSuccess(gltf, sourceInfo) {
+            allMeshes = [];
+            disposePresetMaterials();
+            originalMaterials.clear();
+
+            const model = gltf.scene;
+            if (ffmthModel) {
+                scene.remove(ffmthModel);
+            }
+            ffmthModel = model;
             
-            // postMessage to parent for 100% reliable cross-iframe twin sync (essential for local file:// protocol)
-            try {
-              window.parent.postMessage({
-                type: "forklift_selected_object",
-                objectName: name
-              }, "*");
-            } catch(e) {
-              console.warn("postMessage failed:", e);
+            // Auto focus camera
+            const box = new THREE.Box3().setFromObject(model);
+            const center = box.getCenter(new THREE.Vector3());
+            const size = box.getSize(new THREE.Vector3());
+            model.position.sub(center); // center model to origin
+            
+            scene.add(model);
+            const maxDim = Math.max(size.x, size.y, size.z);
+            const fov = camera.fov * (Math.PI / 180);
+            let cameraZ = Math.abs(maxDim / 2 / Math.tan(fov / 2)) * 1.5;
+            camera.position.set(cameraZ * 0.8, cameraZ * 0.6, cameraZ);
+            camera.lookAt(0, 0, 0);
+            controls.target.set(0, 0, 0);
+            controls.update();
+
+            // Map meshes
+            model.traverse(child => {
+                if (child.isMesh) {
+                    allMeshes.push(child);
+                    originalMaterials.set(child.uuid, child.material);
+                    addClayEdges(child);
+                }
+            });
+            updateObjectMaterials();
+
+            selectableObjects = [];
+            model.traverse(child => {
+                const componentName = resolveObjectComponentName(child);
+                if (componentName) {
+                    child.userData.componentName = componentName;
+                }
+                if (child.visible && (child.isMesh || child.isGroup) && componentName) {
+                    selectableObjects.push(child);
+                }
+            });
+
+            // Load Animations
+            if (gltf.animations && gltf.animations.length > 0) {
+                mixer = new THREE.AnimationMixer(model);
+                gltf.animations.forEach(clip => {
+                    const action = mixer.clipAction(clip);
+                    actions[clip.name] = action;
+                    action.reset().play();
+                    action.paused = true;
+                });
+                duration = gltf.animations.reduce((max, clip) => Math.max(max, clip.duration), 0);
+                updateTimeDisplay(0);
+            }
+
+            if (sourceInfo.includes('LOW')) {
+                progressTextElement.textContent = 'FFMTH Box Low loaded. Background high LOD streaming...';
+                progressBarElement.style.width = '100%';
+                return;
+            }
+
+            loaderElement.style.opacity = 0;
+            setTimeout(() => {
+                loaderElement.style.display = 'none';
+            }, 500);
+        }
+
+        // TIMELINE CONTROLS & SCRUBBER LOGIC
+        function setupTimelineEvents() {
+            const playBtn = document.getElementById('playBtn');
+            const scrubber = document.getElementById('scrubber');
+            const loopSelect = document.getElementById('loopSelectBottom');
+            const materialSelect = document.getElementById('materialSelectBottom');
+
+            playBtn.addEventListener('click', togglePlayPause);
+            if (materialSelect) {
+                materialSelect.value = activeMaterialPreset;
+                materialSelect.addEventListener('change', (e) => setMaterialPreset(e.target.value));
             }
             
-            try {
-              localStorage.setItem("forklift_selected_object", name);
-              window.dispatchEvent(new StorageEvent('storage', {
-                key: 'forklift_selected_object',
-                newValue: name
-              }));
-            } catch(e) {
-              console.warn("Storage sync failed:", e);
+            scrubber.addEventListener('mousedown', onScrubberStart);
+            scrubber.addEventListener('touchstart', onScrubberStart, { passive: true });
+            scrubber.addEventListener('input', onScrubberInput);
+            scrubber.addEventListener('mouseup', onScrubberEnd);
+            scrubber.addEventListener('touchend', onScrubberEnd);
+            scrubber.addEventListener('mouseleave', onScrubberEnd);
+
+            loopSelect.addEventListener('change', (e) => {
+                const mode = e.target.value;
+                Object.values(actions).forEach(action => {
+                    if (action) {
+                        action.clampWhenFinished = (mode === 'once');
+                        action.setLoop(mode === 'once' ? THREE.LoopOnce : THREE.LoopRepeat, mode === 'once' ? 1 : Infinity);
+                    }
+                });
+            });
+        }
+
+        function onScrubberStart() {
+            isScrubbing = true;
+            wasPlayingBeforeScrub = isAnimPlaying;
+            if (isAnimPlaying) {
+                pauseAnimations();
             }
-          }
+            Object.values(actions).forEach(action => { if (action) action.paused = false; });
         }
-      };
 
-      mainCanvas.addEventListener("pointerup", onPointerUp);
-    });
-  }
-
-  function onResize(){
-    camera.aspect = window.innerWidth/window.innerHeight;
-    camera.updateProjectionMatrix();
-    renderer.setSize(window.innerWidth,window.innerHeight);
-  }
-
-  function animate(time){
-    requestAnimationFrame(animate);
-    const dt = clock.getDelta();
-    
-    if(mixer) {
-      if (!isScrubbing && isAnimPlaying) {
-        mixer.update(dt);
-
-        // Update timeline UI — use action.time (mixer.time is cumulative, not per-action position)
-        if (animDuration > 0 && actions.length > 0) {
-          const scrubber = document.getElementById("timelineScrubber");
-          const lblCurrent = document.getElementById("lblCurrentTime");
-          const currentTime = Math.min(actions[0].time, animDuration);
-          if (scrubber) scrubber.value = currentTime / animDuration;
-          if (lblCurrent) lblCurrent.textContent = currentTime.toFixed(1) + "s";
+        function onScrubberInput(e) {
+            const t = parseFloat(e.target.value) * duration;
+            if (mixer) {
+                Object.values(actions).forEach(action => {
+                    if (action) {
+                        action.paused = false;
+                        action.play();
+                    }
+                });
+                mixer.setTime(t);
+                if (!isAnimPlaying) {
+                    Object.values(actions).forEach(action => {
+                        if (action) action.paused = true;
+                    });
+                }
+            }
+            updateTimeDisplay(t);
         }
-      }
-    }
-    
-    controls.update();
-    renderer.render(scene, camera);
 
-    // Telemetry Update FPS
-    frameCount++;
-    if (time > lastFpsTime + 1000) {
-      const fps = Math.round((frameCount * 1000) / (time - lastFpsTime));
-      hudFps.textContent = fps;
-      frameCount = 0;
-      lastFpsTime = time;
-    }
-  }
-
-  function clearCurrentModel(){
-    if(!currentModel) return;
-    scene.remove(currentModel);
-    currentModel.traverse(obj=>{
-      if(obj.geometry) obj.geometry.dispose();
-      if(obj.material){
-        if(Array.isArray(obj.material)) obj.material.forEach(m=>m.dispose && m.dispose());
-        else obj.material.dispose && obj.material.dispose();
-      }
-    });
-    currentModel = null;
-    mixer = null;
-    actions = [];
-  }
-
-  function fitCameraToObject(object){
-    const box = new THREE.Box3().setFromObject(object);
-    const size = box.getSize(new THREE.Vector3());
-    const center = box.getCenter(new THREE.Vector3());
-    const maxSize = Math.max(size.x,size.y,size.z) || 1;
-    const dist = maxSize * 2.35;
-    camera.position.set(center.x + dist, center.y + dist * .65, center.z + dist);
-    camera.near = maxSize / 1000;
-    camera.far = maxSize * 1000;
-    camera.updateProjectionMatrix();
-    controls.target.copy(center);
-    controls.update();
-  }
-
-  function setupAnimations(gltf, label){
-    const clips = gltf.animations || [];
-    mixer = null;
-    actions = [];
-    animDuration = 0;
-    
-    const animSelectGroup = document.getElementById("animPlayGroup");
-    const animSelect = document.getElementById("animationSelect");
-    const playPauseIcon = document.getElementById("playPauseIcon");
-    const timelineContainer = document.getElementById("timelineContainer");
-    const loopSelectBottom = document.getElementById("loopSelectBottom");
-    
-    if(clips.length){
-      mixer = new THREE.AnimationMixer(gltf.scene);
-
-      // Detect LoopOnce completion via Three.js event (reliable, no manual time hacks)
-      mixer.addEventListener('finished', () => {
-        const loopModeSelect = document.getElementById("animationLoopSelect");
-        if (loopModeSelect && loopModeSelect.value === 'once') {
-          updatePlayPauseUI(false);
-          const scrubber = document.getElementById("timelineScrubber");
-          const lblCurrent = document.getElementById("lblCurrentTime");
-          if (scrubber) scrubber.value = 1;
-          if (lblCurrent) lblCurrent.textContent = animDuration.toFixed(1) + "s";
+        function onScrubberEnd() {
+            if (isScrubbing) {
+                isScrubbing = false;
+                if (wasPlayingBeforeScrub) {
+                    playAnimations();
+                } else {
+                    Object.values(actions).forEach(action => { if (action) action.paused = true; });
+                }
+            }
         }
-      });
 
-      // Calculate total maximum duration among all clips
-      animDuration = clips.reduce((max, clip) => Math.max(max, clip.duration), 0);
-      
-      const lblTotalTime = document.getElementById("lblTotalTime");
-      if (lblTotalTime) {
-        lblTotalTime.textContent = animDuration.toFixed(1) + "s";
-      }
-      
-      if (timelineContainer) {
-        timelineContainer.style.display = "flex";
-      }
-      
-      const loopModeSelect = document.getElementById("animationLoopSelect");
-      const currentLoopMode = loopModeSelect ? loopModeSelect.value : "loop";
-      
-      if (loopSelectBottom) {
-        loopSelectBottom.value = currentLoopMode;
-      }
-      
-      actions = clips.map(clip=>{
-        const action = mixer.clipAction(clip);
-        if (currentLoopMode === "once") {
-          action.loop = THREE.LoopOnce;
-          action.clampWhenFinished = true;
-        } else {
-          action.loop = THREE.LoopRepeat;
-          action.clampWhenFinished = false;
+        function togglePlayPause() {
+            if (isAnimPlaying) {
+                pauseAnimations();
+            } else {
+                const loopSelect = document.getElementById('loopSelectBottom');
+                if (loopSelect.value === 'once' && mixer && mixer.time >= duration - 0.02) {
+                    mixer.time = 0;
+                    Object.values(actions).forEach(action => {
+                        if (action) action.reset().play();
+                    });
+                }
+                playAnimations();
+            }
         }
-        return action;
-      });
-      
-      if (animSelect && animSelectGroup) {
-        animSelectGroup.style.display = "flex";
-        animSelect.innerHTML = "";
-        
-        if (clips.length > 1) {
-          const optAll = document.createElement("option");
-          optAll.value = "all";
-          optAll.textContent = "播放全部動畫";
-          animSelect.appendChild(optAll);
+
+        function playAnimations() {
+            isAnimPlaying = true;
+            document.getElementById('playIcon').style.display = 'none';
+            document.getElementById('pauseIcon').style.display = 'block';
+            Object.values(actions).forEach(action => { if (action) action.paused = false; });
         }
-        
-        clips.forEach((clip, index) => {
-          const opt = document.createElement("option");
-          opt.value = index;
-          opt.textContent = clip.name;
-          animSelect.appendChild(opt);
-        });
-        
-        animSelect.value = clips.length > 1 ? "all" : "0";
-        
-        // Setup listener
-        const newAnimSelect = animSelect.cloneNode(true);
-        animSelect.parentNode.replaceChild(newAnimSelect, animSelect);
-        
-        newAnimSelect.addEventListener("change", (e) => {
-          const val = e.target.value;
-          
-          if (val === "all") {
-            actions.forEach(action => {
-              action.paused = false;
-              action.reset().play();
+
+        function pauseAnimations() {
+            isAnimPlaying = false;
+            document.getElementById('playIcon').style.display = 'block';
+            document.getElementById('pauseIcon').style.display = 'none';
+            Object.values(actions).forEach(action => { if (action) action.paused = true; });
+        }
+
+        function updateTimeDisplay(currentTime) {
+            const timeDisplay = document.getElementById('timeDisplay');
+            if (timeDisplay) {
+                timeDisplay.textContent = currentTime.toFixed(1) + 's / ' + duration.toFixed(1) + 's';
+            }
+        }
+
+        // COMMUNICATION & SELECTION SYNC
+        function setupCommunication() {
+            window.addEventListener('message', (event) => {
+                if (event.data && event.data.type === 'set_timeline_visibility') {
+                    const timeline = document.getElementById('timelineContainer');
+                    if (timeline) {
+                        timeline.style.display = event.data.visible ? 'flex' : 'none';
+                    }
+                    return;
+                }
+                if (event.data && event.data.type === 'set_material_preset') {
+                    setMaterialPreset(event.data.preset);
+                    return;
+                }
+                // Listen highlighting command from Parent Premium Explorer
+                if (event.data && event.data.type === 'parent_selected_component') {
+                    const compName = resolveComponentName(event.data.componentName);
+                    if (compName) {
+                        const matchedObj = findSelectableObject(compName);
+                        if (matchedObj) {
+                            selectObject(matchedObj, false);
+                        }
+                    }
+                }
             });
-            updatePlayPauseUI(true);
-            showToast("已播放全部動畫");
-          } else {
-            const idx = parseInt(val);
-            actions.forEach((action, i) => {
-              if (i === idx) {
-                action.paused = false;
-                action.reset().play();
-              } else {
-                action.stop();
-              }
+        }
+
+        function selectObject(objectToSelect, broadcast = true) {
+            const isDeselecting = selectedObject === objectToSelect;
+            selectedObject = isDeselecting ? null : objectToSelect;
+
+            updateObjectMaterials();
+
+            if (broadcast) {
+                try {
+                    const name = selectedObject ? resolveObjectComponentName(selectedObject) : null;
+                    window.parent.postMessage({
+                        type: 'forklift_selected_object',
+                        objectName: name
+                    }, "*");
+                } catch (e) {
+                    console.warn("Cross communication blocked:", e);
+                }
+            }
+        }
+
+        function updateObjectMaterials() {
+            // Remove previous bounding box helper
+            if (window.selectionBoxHelper) {
+                scene.remove(window.selectionBoxHelper);
+                window.selectionBoxHelper.traverse(child => {
+                    if (child.geometry) child.geometry.dispose();
+                    if (child.material) {
+                        if (Array.isArray(child.material)) {
+                            child.material.forEach(m => m.dispose());
+                        } else {
+                            child.material.dispose();
+                        }
+                    }
+                });
+                window.selectionBoxHelper = null;
+            }
+
+            const selectedMeshUuids = new Set();
+            if (selectedObject) {
+                selectedObject.traverse(child => {
+                    if (child.isMesh) selectedMeshUuids.add(child.uuid);
+                });
+            }
+
+            allMeshes.forEach(mesh => {
+                const isSelected = selectedMeshUuids.has(mesh.uuid);
+                if (mesh.userData.clayEdges) {
+                    mesh.userData.clayEdges.visible = activeMaterialPreset !== 'original';
+                }
+
+                if (selectedObject) {
+                    const targetMaterial = isSelected ? highlightMaterial : fadedMaterial;
+                    mesh.material = targetMaterial;
+                } else {
+                    mesh.material = getDisplayMaterial(mesh);
+                }
             });
-            updatePlayPauseUI(true);
-            showToast("正在播放動畫：" + clips[idx].name);
-          }
+
+            // Create new high-tech semi-transparent bounding box with cyan wireframe boundaries
+            if (selectedObject) {
+                const box = new THREE.Box3().setFromObject(selectedObject);
+                const center = new THREE.Vector3();
+                const size = new THREE.Vector3();
+                box.getCenter(center);
+                box.getSize(size);
+
+                const margin = 1.03;
+                const geom = new THREE.BoxGeometry(size.x * margin, size.y * margin, size.z * margin);
+                
+                const mat = new THREE.MeshBasicMaterial({
+                    color: 0x00ffff,
+                    transparent: true,
+                    opacity: 0.12,
+                    depthWrite: false,
+                    side: THREE.DoubleSide
+                });
+
+                const glowBox = new THREE.Mesh(geom, mat);
+
+                const wireframeGeom = new THREE.EdgesGeometry(geom);
+                const wireframeMat = new THREE.LineBasicMaterial({ 
+                    color: 0x00ffff, 
+                    linewidth: 1.5,
+                    transparent: true,
+                    opacity: 0.7
+                });
+                const wireframe = new THREE.LineSegments(wireframeGeom, wireframeMat);
+                
+                glowBox.add(wireframe);
+                glowBox.position.copy(center);
+                scene.add(glowBox);
+                window.selectionBoxHelper = glowBox;
+            }
+        }
+
+        function onCanvasClick(event) {
+            const intersect = getIntersect(event);
+            if (intersect) {
+                let clickedMesh = intersect.object;
+                let selectableAncestor = null;
+                while (clickedMesh) {
+                    if (selectableObjects.includes(clickedMesh)) {
+                        selectableAncestor = clickedMesh;
+                        break;
+                    }
+                    clickedMesh = clickedMesh.parent;
+                }
+                selectObject(selectableAncestor === selectedObject ? null : selectableAncestor, true);
+            } else {
+                selectObject(null, true);
+            }
+        }
+
+        function onPointerMove(event) {
+            const intersect = getIntersect(event);
+            let selectableAncestor = null;
+            if (intersect) {
+                let hoveredMesh = intersect.object;
+                while(hoveredMesh) {
+                    if (selectableObjects.includes(hoveredMesh)) {
+                        selectableAncestor = hoveredMesh;
+                        break;
+                    }
+                    hoveredMesh = hoveredMesh.parent;
+                }
+            }
+            if (selectableAncestor) {
+                const displayName = resolveObjectComponentName(selectableAncestor);
+                document.body.style.cursor = 'pointer';
+                tooltip.textContent = displayName || '';
+                tooltip.style.left = event.clientX + 'px';
+                tooltip.style.top = event.clientY + 'px';
+                tooltip.style.display = displayName ? 'block' : 'none';
+            } else {
+                document.body.style.cursor = 'auto';
+                tooltip.style.display = 'none';
+            }
+        }
+
+        function getIntersect(event) {
+            const rect = renderer.domElement.getBoundingClientRect();
+            const pointer = new THREE.Vector2();
+            pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
+            pointer.y = -((event.clientY - rect.top) / rect.height) * 2 + 1;
+            const raycaster = new THREE.Raycaster();
+            raycaster.setFromCamera(pointer, camera);
+            return raycaster.intersectObjects(allMeshes)[0] || null;
+        }
+
+        // Two-way sync: listen to parent portal selectBox and sidebar drawer selections
+        window.addEventListener('message', (event) => {
+            if (event.data && event.data.type === 'parent_selected_component') {
+                const compName = resolveComponentName(event.data.componentName);
+                if (compName) {
+                    console.log("[FFMTH] Parent selected component:", compName);
+                    const matchedObj = findSelectableObject(compName);
+                    if (matchedObj) {
+                        selectObject(matchedObj, false);
+                    }
+                }
+            }
         });
-      }
-      
-      if(ANIM_MODE === "autoplay"){
-        if (clips.length > 1) {
-          actions.forEach(action => action.reset().play());
-        } else {
-          actions[0].reset().play();
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
         }
-        updatePlayPauseUI(true);
-      }
-    } else {
-      if (animSelectGroup) animSelectGroup.style.display = "none";
-      if (timelineContainer) timelineContainer.style.display = "none";
-    }
-  }
 
-  function loadModel(url, label, isHigh){
-    hudLod.textContent = isHigh ? "HIGH / 替換中" : "LOW / 載入中";
-    
-    loader.load(url, (gltf)=>{
-      const oldModel = currentModel;
-      
-      const oldTarget = controls.target.clone();
-      
-      clearCurrentModel();
-      currentModel = gltf.scene;
-      scene.add(currentModel);
-      
-      if (oldModel) {
-        controls.target.copy(oldTarget);
-        controls.update();
-      } else {
-        fitCameraToObject(currentModel);
-      }
-      
-      setupAnimations(gltf, label);
-      applyMaterialMode(currentMaterialMode);
-      
-      const polys = countPolygons(currentModel);
-      hudVertices.textContent = polys.vert.toLocaleString();
-      
-      hudLod.textContent = isHigh ? "HIGH (串流替換)" : "LOW (內嵌載入)";
-      if (!isHigh && !LOW_GLB_BASE64) {
-        hudLod.textContent = "LOW (外部載入)";
-      }
-      
-      const items = document.querySelectorAll(".assembly-item");
-      if (items.length > 0) {
-        const defaultName = items[0].getAttribute("data-name");
-        selectComponent(defaultName);
-      }
-      
-      showToast(label + " 載入成功");
-    }, (xhr)=>{
-      if(xhr.total){
-        const percent = Math.round(xhr.loaded/xhr.total*100);
-        hudProgress.style.width = percent + "%";
-      }
-    }, (err)=>{
-      console.error(err);
-      showToast(label + " 載入失敗");
-    });
-  }
+        function animate() {
+            requestAnimationFrame(animate);
+            const delta = clock.getDelta();
+            
+            // Flashing selection highlight
+            if (selectedObject) {
+                highlightMaterial.emissiveIntensity = Math.sin(clock.getElapsedTime() * 5) * 0.4 + 0.8;
+            }
 
-  function loadHighModel(){
-    if(HIGH_GLB_URL){
-      loadModel(HIGH_GLB_URL, "HIGH / 外部 GLB", true);
-    }
-  }
+            if (mixer) {
+                // Timeline update Lock
+                if (!isScrubbing && isAnimPlaying) {
+                    mixer.update(delta);
+                }
 
-  function selectComponent(name) {
-    if (!currentModel) return;
-    
-    document.querySelectorAll(".assembly-item").forEach(item => {
-      if(item.getAttribute("data-name") === name) item.classList.add("active");
-      else item.classList.remove("active");
-    });
-    
-    let targetMesh = null;
-    currentModel.traverse(obj => {
-      if (obj.isMesh && obj.name === name) {
-        targetMesh = obj;
-      }
-    });
-    
-    if (targetMesh) {
-      hudPart.textContent = name;
+                if (duration > 0 && isAnimPlaying) {
+                    const loopSelect = document.getElementById('loopSelectBottom');
+                    const isLoop = !loopSelect || loopSelect.value === 'loop';
 
-      // Switch PiP iframe to the matching standalone component HTML page (FAMM-style)
-      if (pipFrame && objectToFileMap[name]) {
-        pipFrame.src = objectToFileMap[name];
-      }
+                    if (mixer.time >= duration) {
+                        if (isLoop) {
+                            mixer.setTime(0);
+                        } else {
+                            mixer.setTime(duration);
+                            pauseAnimations();
+                        }
+                    }
 
-      selectedMeshName = name;
-      applySelectionHighlight(name);
-    }
-  }
+                    const scrubber = document.getElementById('scrubber');
+                    if (scrubber && document.activeElement !== scrubber) {
+                        scrubber.value = mixer.time / duration;
+                    }
+                    updateTimeDisplay(mixer.time);
+                }
+            }
 
-  // Selected mesh → emissive blue glow + bright colour
-  // All others   → dark grey (暗灰色) + no emissive
-  function applySelectionHighlight(name) {
-    if (!currentModel || !name) return;
-    currentModel.traverse(obj => {
-      if (!obj.isMesh) return;
-      if (obj.name === name) {
-        // Restore pre-dim colour if previously saved
-        if (obj.userData.preDimColor) {
-          obj.material.color.copy(obj.userData.preDimColor);
-          obj.userData.preDimColor = null;
+            controls.update();
+            renderer.render(scene, camera);
         }
-        obj.material.emissive = new THREE.Color(0x3b82f6);
-        obj.material.emissiveIntensity = 0.55;
-      } else {
-        // Save bright colour once before dimming
-        if (!obj.userData.preDimColor) {
-          obj.userData.preDimColor = obj.material.color.clone();
-        }
-        obj.material.emissive = new THREE.Color(0x000000);
-        obj.material.emissiveIntensity = 0;
-        obj.material.color.set(0x2e2e2e);   // 暗灰色
-      }
-    });
-  }
-
-  function countPolygons(model) {
-    let tri = 0, vert = 0;
-    model.traverse(obj => {
-      if (obj.isMesh && obj.geometry) {
-        const index = obj.geometry.index;
-        const position = obj.geometry.attributes.position;
-        if (index) tri += index.count / 3;
-        else if (position) tri += position.count / 3;
-        if (position) vert += position.count;
-      }
-    });
-    return { tri: Math.round(tri), vert: Math.round(vert) };
-  }
-
-  function saveOriginalMaterials(root) {
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      if (!obj.userData.originalMaterial) {
-        obj.userData.originalMaterial = obj.material;
-      }
-    });
-  }
-
-  function restoreOriginalMaterials(root) {
-    removeGeneratedEdges(root);
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      if (obj.userData.originalMaterial) {
-        obj.material = obj.userData.originalMaterial;
-      }
-    });
-  }
-
-  function applyToonMaterial(root) {
-    removeGeneratedEdges(root);
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      obj.userData.originalMaterial = obj.userData.originalMaterial || obj.material;
-      const oldMat = Array.isArray(obj.material) ? obj.material[0] : obj.material;
-      obj.material = new THREE.MeshToonMaterial({
-        color: oldMat?.color ? oldMat.color.clone() : new THREE.Color(0xe5e7eb),
-        map: oldMat?.map || null,
-        gradientMap: null
-      });
-    });
-  }
-
-  function addEdgesToMeshes(root, thresholdAngle = 30, color = 0x000000) {
-    root.traverse((obj) => {
-      if (!obj.isMesh) return;
-      const edges = new THREE.EdgesGeometry(obj.geometry, thresholdAngle);
-      const line = new THREE.LineSegments(
-        edges,
-        new THREE.LineBasicMaterial({ color, depthTest: true })
-      );
-      line.name = "__generated_edges__";
-      line.userData.generatedEdges = true;
-      obj.add(line);
-    });
-  }
-
-  function removeGeneratedEdges(root) {
-    const toRemove = [];
-    root.traverse((obj) => {
-      if (obj.userData && obj.userData.generatedEdges) {
-        toRemove.push(obj);
-      }
-    });
-    toRemove.forEach((line) => {
-      if (line.parent) line.parent.remove(line);
-      if (line.geometry) line.geometry.dispose();
-      if (line.material) line.material.dispose();
-    });
-  }
-
-  function applyMaterialMode(mode) {
-    if (!currentModel) return;
-    currentMaterialMode = mode;
-    saveOriginalMaterials(currentModel);
-
-    applyMaterialToNode(currentModel, mode);
-
-    // Re-apply selection highlight after material replacement
-    if (selectedMeshName) {
-      currentModel.traverse(obj => {
-        if (obj.isMesh) {
-          if (obj.name === selectedMeshName) {
-            obj.material.emissive = new THREE.Color(0x3b82f6);
-            obj.material.emissiveIntensity = 0.5;
-          } else {
-            obj.material.emissive = new THREE.Color(0x000000);
-            obj.material.emissiveIntensity = 0;
-          }
-        }
-      });
-    }
-  }
-
-  function applyMaterialToNode(node, mode) {
-    saveOriginalMaterials(node);
-    if (mode === "original") {
-      restoreOriginalMaterials(node);
-    } else if (mode === "toon") {
-      applyToonMaterial(node);
-    } else if (mode === "original-edges") {
-      restoreOriginalMaterials(node);
-      addEdgesToMeshes(node, 30, 0x000000);
-    } else if (mode === "toon-outline") {
-      applyToonMaterial(node);
-      addEdgesToMeshes(node, 30, 0x000000);
-    } else if (mode === "clay-outline") {
-      removeGeneratedEdges(node);
-      node.traverse((obj) => {
-        if (!obj.isMesh) return;
-        obj.userData.originalMaterial = obj.userData.originalMaterial || obj.material;
-        obj.material = new THREE.MeshToonMaterial({ color: 0xe5e7eb });
-      });
-      addEdgesToMeshes(node, 30, 0x111111);
-    } else if (mode === "wireframe") {
-      removeGeneratedEdges(node);
-      node.traverse((obj) => {
-        if (!obj.isMesh) return;
-        obj.userData.originalMaterial = obj.userData.originalMaterial || obj.material;
-        obj.material = new THREE.MeshBasicMaterial({
-          color: 0x38bdf8,
-          wireframe: true,
-          transparent: true,
-          opacity: 0.8
-        });
-      });
-    }
-  }
-
-  let isDragging = false;
-  let isResizing = false;
-  let startX, startY, startW, startH, startLeft, startTop;
-
-  function setupPipControls() {
-    const dragShield = document.getElementById("dragShield");
-    
-    // Drag: iframe absorbs events, so only trigger from pip border/non-iframe area
-    pipWindow.addEventListener("mousedown", (e) => {
-      if (e.target.closest('#pipResizeHandle') || e.target.tagName === 'IFRAME') return;
-      if (pipWindow.classList.contains("fullscreen")) return;
-      isDragging = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = pipWindow.getBoundingClientRect();
-      startLeft = rect.left;
-      startTop = rect.top;
-      dragShield.style.display = "block";
-      e.preventDefault();
-    });
-
-    document.getElementById("pipResizeHandle").addEventListener("mousedown", (e) => {
-      isResizing = true;
-      startX = e.clientX;
-      startY = e.clientY;
-      const rect = pipWindow.getBoundingClientRect();
-      startW = rect.width;
-      startH = rect.height;
-      dragShield.style.display = "block";
-      dragShield.classList.add("resizing");
-      e.preventDefault();
-    });
-
-    window.addEventListener("mousemove", (e) => {
-      if (isDragging) {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        pipWindow.style.right = "auto";
-        pipWindow.style.bottom = "auto";
-        pipWindow.style.left = (startLeft + dx) + "px";
-        pipWindow.style.top = (startTop + dy) + "px";
-      }
-      if (isResizing) {
-        const dx = e.clientX - startX;
-        const dy = e.clientY - startY;
-        const nw = Math.max(160, startW + dx);
-        const nh = Math.max(120, startH + dy);
-        pipWindow.style.width = nw + "px";
-        pipWindow.style.height = nh + "px";
-      }
-    });
-
-    window.addEventListener("mouseup", () => {
-      isDragging = false;
-      isResizing = false;
-      dragShield.style.display = "none";
-      dragShield.classList.remove("resizing");
-    });
-  }
-
-  let toastTimer = null;
-  function showToast(msg) {
-    toastText.textContent = msg;
-    toast.classList.add("show");
-    if(toastTimer) clearTimeout(toastTimer);
-    toastTimer = setTimeout(() => {
-      toast.classList.remove("show");
-    }, 2500);
-  }
-  </script>
+    </script>
 </body>
 </html>

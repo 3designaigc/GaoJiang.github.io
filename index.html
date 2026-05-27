@@ -1,473 +1,460 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-TW">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>GJweb | 3D 數位雙生智慧組立門戶系統</title>
-  
-  <!-- Modern Typography from Google Fonts -->
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=Noto+Sans+TC:wght@300;400;500;700;900&family=JetBrains+Mono:wght@300;400;500&display=swap" rel="stylesheet">
-  
-  <style>
-    :root {
-      --bg-gradient: radial-gradient(circle at 50% 30%, #0c122c 0%, #030712 100%);
-      --panel-bg: rgba(10, 15, 30, 0.65);
-      --panel-border: rgba(99, 102, 241, 0.15);
-      --panel-border-hover: rgba(139, 92, 246, 0.45);
-      --text-primary: #f8fafc;
-      --text-secondary: #94a3b8;
-      --text-dim: #475569;
-      --primary: #8b5cf6;          /* Cyber Violet */
-      --primary-glow: rgba(139, 92, 246, 0.4);
-      --accent: #3b82f6;           /* Cyan Blue */
-      --accent-glow: rgba(59, 130, 246, 0.4);
-      --font-sans: 'Outfit', "Noto Sans TC", -apple-system, BlinkMacSystemFont, sans-serif;
-      --font-mono: 'JetBrains Mono', monospace;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="GJweb_Ares 3D 數位雙生智慧組立遙測控制門戶。整合 GH精密傳動與 FAMM機械組立運動分析，打造未來 SCADA 科技美學三維數位沙盒。">
+    <title>GJweb_Ares 3D 數位雙生智慧組立主控台遙測門戶</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;600;800&family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-color: #060814;
+            --grid-color: rgba(99, 102, 241, 0.04);
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --neon-purple: #8b5cf6;
+            --neon-blue: #3b82f6;
+            --neon-green: #10b981;
+            --border-glow: rgba(99, 102, 241, 0.15);
+        }
 
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    html, body {
-      width: 100%;
-      height: 100%;
-      overflow-x: hidden;
-      background: var(--bg-gradient);
-      color: var(--text-primary);
-      font-family: var(--font-sans);
-      -webkit-font-smoothing: antialiased;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: space-between;
-    }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-primary);
+            font-family: 'Oswald', 'Outfit', 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+            position: relative;
+        }
 
-    /* -------------------------------------------------------------
-     * SCADA GRID BACKGROUND NOISE & GLOW
-     * ------------------------------------------------------------- */
-    .bg-grid {
-      position: fixed;
-      inset: 0;
-      background-image: 
-        linear-gradient(rgba(99, 102, 241, 0.03) 1px, transparent 1px),
-        linear-gradient(90deg, rgba(99, 102, 241, 0.03) 1px, transparent 1px);
-      background-size: 40px 40px;
-      background-position: center top;
-      pointer-events: none;
-      z-index: 1;
-    }
+        /* 3D Cyber Grid & Glow Spots Background */
+        body::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-image: 
+                linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
+                linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
+            background-size: 45px 45px;
+            pointer-events: none;
+            z-index: 0;
+        }
 
-    .ambient-glow-1 {
-      position: fixed;
-      top: -10%;
-      left: 20%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 1;
-      filter: blur(80px);
-    }
+        body::after {
+            content: '';
+            position: absolute;
+            top: -20%; left: -10%; width: 50vw; height: 50vw;
+            background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(6, 8, 20, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(40px);
+        }
 
-    .ambient-glow-2 {
-      position: fixed;
-      bottom: -10%;
-      right: 20%;
-      width: 600px;
-      height: 600px;
-      background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, transparent 70%);
-      pointer-events: none;
-      z-index: 1;
-      filter: blur(80px);
-    }
+        .ambient-blue {
+            position: absolute;
+            bottom: -10%; right: -5%; width: 60vw; height: 60vw;
+            background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, rgba(6, 8, 20, 0) 70%);
+            pointer-events: none;
+            z-index: 0;
+            filter: blur(40px);
+        }
 
-    /* -------------------------------------------------------------
-     * HEADER PORTAL TITLE
-     * ------------------------------------------------------------- */
-    header {
-      width: 100%;
-      max-width: 1200px;
-      padding: 60px 24px 20px 24px;
-      text-align: center;
-      z-index: 10;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
-    }
+        /* Top SCADA Status Bar Header */
+        header {
+            width: 100%;
+            padding: 16px 40px;
+            background: rgba(10, 15, 30, 0.4);
+            backdrop-filter: blur(15px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            position: relative;
+        }
 
-    .system-tag {
-      font-family: var(--font-mono);
-      font-size: 11px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.25em;
-      color: var(--accent);
-      background: rgba(59, 130, 246, 0.1);
-      padding: 6px 14px;
-      border-radius: 99px;
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      box-shadow: 0 0 15px rgba(59, 130, 246, 0.15);
-      animation: pulse 2.5s infinite;
-    }
+        .scada-logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
 
-    h1 {
-      font-size: 2.8rem;
-      font-weight: 900;
-      letter-spacing: -0.03em;
-      line-height: 1.2;
-      background: linear-gradient(135deg, #ffffff 40%, #a5b4fc 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-top: 8px;
-    }
+        .logo-box {
+            width: 28px;
+            height: 28px;
+            border: 2px solid var(--neon-blue);
+            transform: rotate(45deg);
+            position: relative;
+            animation: pulse-border 3s infinite alternate;
+        }
+        .logo-box::after {
+            content: '';
+            position: absolute;
+            top: 2px; left: 2px; right: 2px; bottom: 2px;
+            border: 1px solid var(--neon-purple);
+        }
 
-    header p {
-      font-size: 1rem;
-      color: var(--text-secondary);
-      max-width: 650px;
-      line-height: 1.6;
-      font-weight: 300;
-    }
+        .logo-text {
+            font-size: 1.15rem;
+            font-weight: 800;
+            letter-spacing: 2px;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    /* -------------------------------------------------------------
-     * MAIN PORTAL CARDS GRID
-     * ------------------------------------------------------------- */
-    .portal-container {
-      width: 100%;
-      max-width: 1100px;
-      padding: 20px 24px 60px 24px;
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 40px;
-      z-index: 10;
-    }
+        .scada-status {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            color: var(--text-secondary);
+        }
 
-    .portal-card {
-      background: var(--panel-bg);
-      border: 1px solid var(--panel-border);
-      border-radius: 28px;
-      padding: 40px;
-      backdrop-filter: blur(24px);
-      -webkit-backdrop-filter: blur(24px);
-      box-shadow: 
-        0 30px 60px rgba(0, 0, 0, 0.4),
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      gap: 30px;
-      text-decoration: none;
-      color: inherit;
-      position: relative;
-      overflow: hidden;
-      transition: all 0.45s cubic-bezier(0.16, 1, 0.3, 1);
-    }
+        .status-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
 
-    /* Card Glow Effect */
-    .portal-card::before {
-      content: '';
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at 50% 0%, rgba(255,255,255,0.03) 0%, transparent 65%);
-      pointer-events: none;
-      transition: opacity 0.5s;
-    }
+        .pulse-dot {
+            width: 8px;
+            height: 8px;
+            background-color: var(--neon-green);
+            border-radius: 50%;
+            box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
+            animation: pulse-glow 1.5s infinite;
+        }
 
-    .portal-card:hover {
-      transform: translateY(-8px);
-      border-color: var(--panel-border-hover);
-      box-shadow: 
-        0 40px 80px rgba(0, 0, 0, 0.6),
-        0 0 30px rgba(139, 92, 246, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
+        .version-tag {
+            background: rgba(59, 130, 246, 0.1);
+            color: #60a5fa;
+            padding: 2px 8px;
+            border-radius: 4px;
+            border: 1px solid rgba(59, 130, 246, 0.2);
+        }
 
-    .portal-card.accent-card:hover {
-      box-shadow: 
-        0 40px 80px rgba(0, 0, 0, 0.6),
-        0 0 30px rgba(59, 130, 246, 0.15),
-        inset 0 1px 0 rgba(255, 255, 255, 0.08);
-    }
+        /* Main Container */
+        main {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 40px 24px;
+            z-index: 10;
+            position: relative;
+        }
 
-    .card-top {
-      display: flex;
-      flex-direction: column;
-      gap: 16px;
-    }
+        .hero-section {
+            text-align: center;
+            margin-bottom: 50px;
+        }
 
-    .card-icon-container {
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
-      background: rgba(139, 92, 246, 0.12);
-      border: 1px solid rgba(139, 92, 246, 0.2);
-      color: var(--primary);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: all 0.3s;
-      box-shadow: 0 8px 20px rgba(139, 92, 246, 0.1);
-    }
+        .hero-title {
+            font-size: 3rem;
+            font-weight: 800;
+            letter-spacing: -1px;
+            margin-bottom: 12px;
+            background: linear-gradient(to right, #ffffff 30%, #c7d2fe 70%, #818cf8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
 
-    .portal-card.accent-card .card-icon-container {
-      background: rgba(59, 130, 246, 0.12);
-      border: 1px solid rgba(59, 130, 246, 0.2);
-      color: var(--accent);
-      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.1);
-    }
+        .hero-subtitle {
+            font-size: 1.1rem;
+            color: var(--text-secondary);
+            max-width: 650px;
+            margin: 0 auto;
+            line-height: 1.6;
+            font-weight: 300;
+        }
 
-    .portal-card:hover .card-icon-container {
-      transform: scale(1.08) rotate(3deg);
-      background: var(--primary);
-      color: #ffffff;
-      border-color: transparent;
-      box-shadow: 0 12px 25px var(--primary-glow);
-    }
+        /* Card Deck (Obsidian Glassmorphism) */
+        .card-deck {
+            display: flex;
+            gap: 32px;
+            width: 100%;
+            max-width: 1100px;
+            justify-content: center;
+        }
 
-    .portal-card.accent-card:hover .card-icon-container {
-      background: var(--accent);
-      color: #ffffff;
-      border-color: transparent;
-      box-shadow: 0 12px 25px var(--accent-glow);
-    }
+        .dashboard-card {
+            flex: 1;
+            max-width: 500px;
+            background: rgba(10, 15, 30, 0.6);
+            backdrop-filter: blur(25px) saturate(1.8);
+            -webkit-backdrop-filter: blur(25px) saturate(1.8);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            padding: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            cursor: pointer;
+            text-decoration: none;
+            color: inherit;
+            position: relative;
+            overflow: hidden;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.01);
+        }
 
-    .card-icon-container svg {
-      width: 32px;
-      height: 32px;
-    }
+        /* Sweep gloss effect */
+        .dashboard-card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: -100%; width: 100%; height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
+            transition: 0.5s;
+            pointer-events: none;
+        }
+        .dashboard-card:hover::before {
+            left: 100%;
+        }
 
-    .card-title-group h2 {
-      font-size: 1.8rem;
-      font-weight: 800;
-      color: #ffffff;
-      letter-spacing: -0.02em;
-      margin-bottom: 8px;
-      transition: color 0.3s;
-    }
+        /* Distinctive glows for GH (Purple) and FAMM (Blue) */
+        .card-gh {
+            border-color: rgba(139, 92, 246, 0.15);
+        }
+        .card-gh:hover {
+            transform: translateY(-10px);
+            border-color: var(--neon-purple);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(139, 92, 246, 0.25);
+        }
 
-    .portal-card:hover .card-title-group h2 {
-      color: var(--primary);
-    }
+        .card-famm {
+            border-color: rgba(59, 130, 246, 0.15);
+        }
+        .card-famm:hover {
+            transform: translateY(-10px);
+            border-color: var(--neon-blue);
+            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.25);
+        }
 
-    .portal-card.accent-card:hover .card-title-group h2 {
-      color: var(--accent);
-    }
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+        }
 
-    .card-title-group p {
-      font-size: 0.92rem;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      font-weight: 300;
-    }
+        .tech-index {
+            font-family: 'Share Tech Mono', monospace;
+            font-size: 0.85rem;
+            letter-spacing: 1.5px;
+            color: var(--text-secondary);
+        }
 
-    .features-list {
-      margin-top: 10px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: all 0.3s;
+        }
 
-    .feature-item {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-      font-family: var(--font-sans);
-    }
+        .card-gh:hover .card-icon {
+            background: rgba(139, 92, 246, 0.15);
+            border-color: var(--neon-purple);
+            color: #c084fc;
+        }
+        .card-famm:hover .card-icon {
+            background: rgba(59, 130, 246, 0.15);
+            border-color: var(--neon-blue);
+            color: #60a5fa;
+        }
 
-    .feature-item svg {
-      width: 14px;
-      height: 14px;
-      color: var(--primary);
-    }
+        .card-icon svg {
+            width: 22px;
+            height: 22px;
+            fill: currentColor;
+        }
 
-    .portal-card.accent-card .feature-item svg {
-      color: var(--accent);
-    }
+        .card-body {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
 
-    .card-bottom {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      border-top: 1px solid rgba(255, 255, 255, 0.05);
-      padding-top: 20px;
-    }
+        .card-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+        }
 
-    .enter-label {
-      font-size: 0.88rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      color: var(--primary);
-      transition: transform 0.3s;
-    }
+        .card-desc {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.6;
+            font-weight: 300;
+        }
 
-    .portal-card.accent-card .enter-label {
-      color: var(--accent);
-    }
+        .card-footer {
+            margin-top: auto;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.5px;
+            transition: all 0.3s;
+        }
 
-    .enter-arrow {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      background: rgba(255, 255, 255, 0.04);
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      color: var(--text-secondary);
-      transition: all 0.3s;
-    }
+        .card-gh .card-footer { color: #c084fc; }
+        .card-famm .card-footer { color: #60a5fa; }
 
-    .portal-card:hover .enter-arrow {
-      background: var(--primary-glow);
-      border-color: var(--primary);
-      color: #ffffff;
-      transform: translateX(6px);
-    }
+        .btn-arrow {
+            transition: transform 0.3s;
+        }
+        .dashboard-card:hover .btn-arrow {
+            transform: translateX(5px);
+        }
 
-    .portal-card.accent-card:hover .enter-arrow {
-      background: var(--accent-glow);
-      border-color: var(--accent);
-      color: #ffffff;
-      transform: translateX(6px);
-    }
+        /* Footer */
+        footer {
+            width: 100%;
+            padding: 24px;
+            text-align: center;
+            font-size: 0.75rem;
+            color: rgba(255, 255, 255, 0.2);
+            font-family: 'Share Tech Mono', monospace;
+            border-top: 1px solid rgba(255, 255, 255, 0.02);
+            z-index: 10;
+        }
 
-    .enter-arrow svg {
-      width: 16px;
-      height: 16px;
-    }
+        /* Animations */
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.15); opacity: 0.7; }
+        }
 
-    /* -------------------------------------------------------------
-     * FOOTER
-     * ------------------------------------------------------------- */
-    footer {
-      width: 100%;
-      padding: 30px;
-      text-align: center;
-      font-family: var(--font-mono);
-      font-size: 11px;
-      color: var(--text-dim);
-      border-top: 1px solid rgba(255, 255, 255, 0.02);
-      background: rgba(4, 6, 15, 0.5);
-      z-index: 10;
-      letter-spacing: 0.5px;
-    }
+        @keyframes pulse-border {
+            0% { border-color: var(--neon-blue); }
+            100% { border-color: var(--neon-purple); }
+        }
 
-    /* Pulse animation tag */
-    @keyframes pulse {
-      0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
-      70% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
-    }
-
-    @media (max-width: 800px) {
-      .portal-container {
-        grid-template-columns: 1fr;
-        gap: 30px;
-      }
-      h1 {
-        font-size: 2.2rem;
-      }
-    }
-  </style>
+        /* Responsive Layout (RWD) */
+        @media (max-width: 900px) {
+            .card-deck {
+                flex-direction: column;
+                align-items: center;
+                gap: 24px;
+            }
+            .dashboard-card {
+                width: 100%;
+                padding: 30px;
+            }
+            .hero-title {
+                font-size: 2.2rem;
+            }
+            header {
+                padding: 16px 20px;
+            }
+        }
+    </style>
 </head>
 <body>
-  
-  <!-- SCADA Grid & Glow -->
-  <div class="bg-grid"></div>
-  <div class="ambient-glow-1"></div>
-  <div class="ambient-glow-2"></div>
+    <div class="ambient-blue"></div>
 
-  <!-- Header Section -->
-  <header>
-    <div class="system-tag">SCADA Web3D Twin Hub</div>
-    <h1>GJweb 3D 智慧組立視覺化主控台</h1>
-    <p>高端機械 3D 數位雙生遙測平台。採用先進的雙視角（主視角 + PiP 克隆特寫）隔離引擎、Dual LOD 串流加載技術、以及 6 種 SCADA 圖解著色器濾鏡，實現極致的工業組立視覺化交互控制。</p>
-  </header>
+    <!-- SCADA Status Bar -->
+    <header>
+        <div class="scada-logo">
+            <div class="logo-box"></div>
+            <span class="logo-text">GJ_ARES</span>
+        </div>
+        <div class="scada-status">
+            <div class="status-item">
+                <div class="pulse-dot"></div>
+                <span>TELEMETRY ONLINE</span>
+            </div>
+            <div class="status-item">
+                <span>SYSTEM MODE:</span>
+                <span class="version-tag">AVO EVOLUTION ACTIVE</span>
+            </div>
+            <div class="status-item">
+                <span>VER:</span>
+                <span class="version-tag" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); color: #c084fc;">v2.65-Ares</span>
+            </div>
+        </div>
+    </header>
 
-  <!-- Portal Container Section -->
-  <section class="portal-container">
-    
-    <!-- 1. FAMM Portal Card -->
-    <a href="FAMM/GaoJiang_Explorer_Premium.html" class="portal-card">
-      <div class="card-top">
-        <div class="card-icon-container">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 16V8a2 2 0 00-1-1.73l-7-4a2 2 0 00-2 0l-7 4A2 2 0 003 8v8a2 2 0 001 1.73l7 4a2 2 0 002 0l7-4A2 2 0 0021 16z"/><path d="M3.27 7L12 12.01 20.73 7M12 22.08V12"/></svg>
+    <!-- Main Entry Gate -->
+    <main>
+        <div class="hero-section">
+            <h1 class="hero-title">3D Digital Twin Assembly Console</h1>
+            <p class="hero-subtitle">
+                歡迎進入 GJweb_Ares 精密組立運動遙測門戶。本系統基於雙視角隔離、LOD 背景無縫 Swap 加速與 HTML5 標準雙向 postMessage 連動，為您展示完美的離線控制三維數位沙盒。
+            </p>
         </div>
-        <div class="card-title-group">
-          <h2>FAMM 智慧組立主控台</h2>
-          <p>高端機械 FAMM 系列 3D 組立運動分析主控台。已配置高精細度的傳動齒輪、基座、導柱引導模組，支援多視角連動特寫遙測。</p>
-        </div>
-        <div class="features-list">
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>高板上蓋運動組立、球臼防護套筒組立</span>
-          </div>
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>精準導柱引導組立、大型基座支撐組立</span>
-          </div>
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>雙視角 (Main + PiP) 隔離複本對焦檢視</span>
-          </div>
-        </div>
-      </div>
-      <div class="card-bottom">
-        <span class="enter-label">進入 FAMM 系統</span>
-        <div class="enter-arrow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-      </div>
-    </a>
 
-    <!-- 2. GH Portal Card -->
-    <a href="GH/GH_Explorer_Premium.html" class="portal-card accent-card">
-      <div class="card-top">
-        <div class="card-icon-container">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.7 6.3a1 1 0 000 1.4l1.6 1.6a1 1 0 001.4 0l3.77-3.77a6 6 0 01-7.94 7.94l-6.91 6.91a2.12 2.12 0 01-3-3l6.91-6.91a6 6 0 017.94-7.94l-3.76 3.76z"/></svg>
-        </div>
-        <div class="card-title-group">
-          <h2>GH 智慧組立主控台</h2>
-          <p>高端機械 GH 系列 3D 組立運動數位雙生主控台。已整合 9 個大型精密機械子組件，支援 Low 內嵌極速載入與背景 High 串流無縫替換。</p>
-        </div>
-        <div class="features-list">
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>整體機械動態雙生、傳動導柱組立、主動齒輪箱組立</span>
-          </div>
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>支撐臂組立、液壓推桿箱組立、精密導軌與導板組立</span>
-          </div>
-          <div class="feature-item">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-            <span>配重塊與密封套環組立、全 6 種互動 PBR/卡通描邊著色器</span>
-          </div>
-        </div>
-      </div>
-      <div class="card-bottom">
-        <span class="enter-label">進入 GH 系統</span>
-        <div class="enter-arrow">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </div>
-      </div>
-    </a>
+        <div class="card-deck">
+            <!-- GH Card -->
+            <a href="./GH/GH_Explorer_Premium.html" class="dashboard-card card-gh" id="card-gh-link">
+                <div class="card-header">
+                    <span class="tech-index">CONSOLE // 01</span>
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h2 class="card-title">GH 智慧組立主控台</h2>
+                    <p class="card-desc">
+                        國瑞精密組件 3D 數位雙生展示系統。包含左/右側傳動導柱組立等 10 組精密 Standalone 組件與整體模型 FFMTH，支持多軌動畫分析、材質切換、及絲滑的拖拽無級 Scrubber 時鐘鎖控制。
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <span>ENTER SYSTEM GATE</span>
+                    <span class="btn-arrow">→</span>
+                </div>
+            </a>
 
-  </section>
+            <!-- FAMM Card -->
+            <a href="./FAMM/GaoJiang_Explorer_Premium.html" class="dashboard-card card-famm" id="card-famm-link">
+                <div class="card-header">
+                    <span class="tech-index">CONSOLE // 02</span>
+                    <div class="card-icon">
+                        <svg viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
+                        </svg>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h2 class="card-title">FAMM 智慧組立主控台</h2>
+                    <p class="card-desc">
+                        高江高精密組立數位雙生展示系統。整合 02.Mortar、04Base、GuidePost 等高精細 3D 組件。全面對接 AVO 標準時間軸計時狀態鎖，呈現無死角重工業機械拆解展示。
+                    </p>
+                </div>
+                <div class="card-footer">
+                    <span>ENTER SYSTEM GATE</span>
+                    <span class="btn-arrow">→</span>
+                </div>
+            </a>
+        </div>
+    </main>
 
-  <!-- Footer Section -->
-  <footer>
-    SYSTEM PORTAL HOSTED LOCALLY ON RESILIO PORT / V.2601.GJ.01 / © 2026 DEEPMIND ADVANCED CODING AGENT
-  </footer>
-
+    <!-- Footer -->
+    <footer>
+        AIGC AGENTIC SCADA SYSTEM // OPERATOR: AVO SMART EVOLUTION AGENT // CORPUS: 2601GJ
+    </footer>
 </body>
 </html>
