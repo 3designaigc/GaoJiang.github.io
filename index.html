@@ -3,458 +3,412 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="GJweb_Ares 3D 數位雙生智慧組立遙測控制門戶。整合 GH精密傳動與 FAMM機械組立運動分析，打造未來 SCADA 科技美學三維數位沙盒。">
-    <title>GJweb_Ares 3D 數位雙生智慧組立主控台遙測門戶</title>
-    <!-- Google Fonts -->
+    <meta name="description" content="高將精機深色 SCADA 玻璃風格入口，進入 FAMM 與 FM-350 Web3D 系統。">
+    <title>高將精機 | SCADA Glass Gate</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&family=Inter:wght@300;400;600;800&family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
-    
+    <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-color: #060814;
-            --grid-color: rgba(99, 102, 241, 0.04);
-            --text-primary: #f8fafc;
-            --text-secondary: #94a3b8;
-            --neon-purple: #8b5cf6;
-            --neon-blue: #3b82f6;
-            --neon-green: #10b981;
-            --border-glow: rgba(99, 102, 241, 0.15);
+            --bg: #050913;
+            --bg-2: #0b1324;
+            --glass: rgba(12, 20, 36, 0.66);
+            --glass-strong: rgba(17, 29, 50, 0.78);
+            --line: rgba(148, 189, 236, 0.2);
+            --line-strong: rgba(160, 210, 255, 0.42);
+            --text: #edf6ff;
+            --muted: #8ca8c6;
+            --cyan: #72d7ff;
+            --blue: #3f8cff;
+            --green: #5dffb0;
         }
 
         * {
-            margin: 0;
-            padding: 0;
             box-sizing: border-box;
         }
 
+        html {
+            min-height: 100%;
+            background: var(--bg);
+        }
+
         body {
-            background-color: var(--bg-color);
-            color: var(--text-primary);
-            font-family: 'Oswald', 'Outfit', 'Inter', sans-serif;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
+            margin: 0;
+            color: var(--text);
+            font-family: "Oswald", "Noto Sans TC", "Microsoft JhengHei", Arial, sans-serif;
+            letter-spacing: 0;
+            background:
+                radial-gradient(circle at 18% 14%, rgba(63, 140, 255, 0.18), transparent 32%),
+                radial-gradient(circle at 86% 72%, rgba(114, 215, 255, 0.12), transparent 30%),
+                linear-gradient(135deg, var(--bg) 0%, var(--bg-2) 100%);
             overflow-x: hidden;
-            position: relative;
         }
 
-        /* 3D Cyber Grid & Glow Spots Background */
         body::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-image: 
-                linear-gradient(to right, var(--grid-color) 1px, transparent 1px),
-                linear-gradient(to bottom, var(--grid-color) 1px, transparent 1px);
-            background-size: 45px 45px;
+            content: "";
+            position: fixed;
+            inset: 0;
+            background:
+                linear-gradient(90deg, transparent 47px, rgba(114, 215, 255, 0.045) 48px, transparent 49px),
+                linear-gradient(0deg, transparent 47px, rgba(114, 215, 255, 0.04) 48px, transparent 49px);
+            background-size: 96px 96px;
             pointer-events: none;
-            z-index: 0;
         }
 
-        body::after {
-            content: '';
-            position: absolute;
-            top: -20%; left: -10%; width: 50vw; height: 50vw;
-            background: radial-gradient(circle, rgba(139, 92, 246, 0.08) 0%, rgba(6, 8, 20, 0) 70%);
-            pointer-events: none;
-            z-index: 0;
-            filter: blur(40px);
+        .shell {
+            position: relative;
+            z-index: 1;
+            width: min(100%, 1180px);
+            min-height: 100vh;
+            margin: 0 auto;
+            padding: clamp(22px, 4vw, 36px);
+            display: grid;
+            grid-template-rows: auto 1fr auto;
+            gap: clamp(26px, 5vw, 42px);
         }
 
-        .ambient-blue {
-            position: absolute;
-            bottom: -10%; right: -5%; width: 60vw; height: 60vw;
-            background: radial-gradient(circle, rgba(59, 130, 246, 0.06) 0%, rgba(6, 8, 20, 0) 70%);
-            pointer-events: none;
-            z-index: 0;
-            filter: blur(40px);
-        }
-
-        /* Top SCADA Status Bar Header */
-        header {
-            width: 100%;
-            padding: 16px 40px;
-            background: rgba(10, 15, 30, 0.4);
-            backdrop-filter: blur(15px);
-            border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+        .topbar {
+            min-height: 74px;
+            padding: 18px 22px;
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-            position: relative;
+            gap: 22px;
+            background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.025));
+            border: 1px solid var(--line);
+            box-shadow: 0 24px 58px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(18px) saturate(1.4);
         }
 
-        .scada-logo {
+        .brand {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 14px;
+            min-width: 0;
         }
 
-        .logo-box {
-            width: 28px;
-            height: 28px;
-            border: 2px solid var(--neon-blue);
+        .brand-mark {
+            width: 32px;
+            height: 32px;
+            border: 1px solid var(--line-strong);
+            position: relative;
             transform: rotate(45deg);
-            position: relative;
-            animation: pulse-border 3s infinite alternate;
+            box-shadow: 0 0 28px rgba(114, 215, 255, 0.16);
         }
-        .logo-box::after {
-            content: '';
+
+        .brand-mark::before,
+        .brand-mark::after {
+            content: "";
             position: absolute;
-            top: 2px; left: 2px; right: 2px; bottom: 2px;
-            border: 1px solid var(--neon-purple);
+            inset: 7px;
+            border: 1px solid rgba(114, 215, 255, 0.32);
         }
 
-        .logo-text {
-            font-size: 1.15rem;
-            font-weight: 800;
-            letter-spacing: 2px;
-            background: linear-gradient(135deg, #fff 0%, #a5b4fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        .brand-mark::after {
+            inset: 13px;
+            background: var(--cyan);
+            border: 0;
+            box-shadow: 0 0 18px rgba(114, 215, 255, 0.82);
         }
 
-        .scada-status {
+        .brand-text {
+            min-width: 0;
+        }
+
+        .brand-text h1 {
+            margin: 0;
+            font-family: "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+            font-size: clamp(1.32rem, 2.6vw, 1.85rem);
+            font-weight: 400;
+            letter-spacing: 0.08em;
+            line-height: 1.15;
+        }
+
+        .brand-text p {
+            margin: 5px 0 0;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 300;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+        }
+
+        .status-strip {
             display: flex;
             align-items: center;
-            gap: 24px;
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.8rem;
-            letter-spacing: 1px;
-            color: var(--text-secondary);
+            justify-content: flex-end;
+            gap: 18px;
+            color: var(--muted);
+            font-size: 0.78rem;
+            font-weight: 300;
+            letter-spacing: 0.09em;
+            text-transform: uppercase;
+            white-space: nowrap;
         }
 
-        .status-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .pulse-dot {
+        .live-dot {
             width: 8px;
             height: 8px;
-            background-color: var(--neon-green);
-            border-radius: 50%;
-            box-shadow: 0 0 10px var(--neon-green), 0 0 20px var(--neon-green);
-            animation: pulse-glow 1.5s infinite;
+            background: var(--green);
+            box-shadow: 0 0 16px rgba(93, 255, 176, 0.9);
         }
 
-        .version-tag {
-            background: rgba(59, 130, 246, 0.1);
-            color: #60a5fa;
-            padding: 2px 8px;
-            border-radius: 4px;
-            border: 1px solid rgba(59, 130, 246, 0.2);
-        }
-
-        /* Main Container */
-        main {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            padding: 40px 24px;
-            z-index: 10;
+        .gate-panel {
             position: relative;
-        }
-
-        .hero-section {
-            text-align: center;
-            margin-bottom: 50px;
-        }
-
-        .hero-title {
-            font-size: 3rem;
-            font-weight: 800;
-            letter-spacing: -1px;
-            margin-bottom: 12px;
-            background: linear-gradient(to right, #ffffff 30%, #c7d2fe 70%, #818cf8 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        .hero-subtitle {
-            font-size: 1.1rem;
-            color: var(--text-secondary);
-            max-width: 650px;
-            margin: 0 auto;
-            line-height: 1.6;
-            font-weight: 300;
-        }
-
-        /* Card Deck (Obsidian Glassmorphism) */
-        .card-deck {
-            display: flex;
-            gap: 32px;
-            width: 100%;
-            max-width: 1100px;
-            justify-content: center;
-        }
-
-        .dashboard-card {
-            flex: 1;
-            max-width: 500px;
-            background: rgba(10, 15, 30, 0.6);
-            backdrop-filter: blur(25px) saturate(1.8);
-            -webkit-backdrop-filter: blur(25px) saturate(1.8);
-            border-radius: 20px;
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            padding: 40px;
-            display: flex;
-            flex-direction: column;
-            gap: 24px;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            position: relative;
+            align-self: center;
+            padding: clamp(26px, 5vw, 46px);
+            background: linear-gradient(135deg, var(--glass-strong), var(--glass));
+            border: 1px solid var(--line);
+            box-shadow: 0 34px 86px rgba(0, 0, 0, 0.42), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+            backdrop-filter: blur(22px) saturate(1.45);
             overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), inset 0 0 20px rgba(255, 255, 255, 0.01);
         }
 
-        /* Sweep gloss effect */
-        .dashboard-card::before {
-            content: '';
+        .gate-panel::before {
+            content: "";
             position: absolute;
-            top: 0; left: -100%; width: 100%; height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.03), transparent);
-            transition: 0.5s;
+            inset: 0;
+            background:
+                linear-gradient(120deg, rgba(255, 255, 255, 0.1), transparent 28%),
+                linear-gradient(0deg, transparent, rgba(114, 215, 255, 0.04));
             pointer-events: none;
         }
-        .dashboard-card:hover::before {
-            left: 100%;
-        }
 
-        /* Distinctive glows for GH (Purple) and FAMM (Blue) */
-        .card-gh {
-            border-color: rgba(139, 92, 246, 0.15);
-        }
-        .card-gh:hover {
-            transform: translateY(-10px);
-            border-color: var(--neon-purple);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(139, 92, 246, 0.25);
-        }
-
-        .card-famm {
-            border-color: rgba(59, 130, 246, 0.15);
-        }
-        .card-famm:hover {
-            transform: translateY(-10px);
-            border-color: var(--neon-blue);
-            box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 25px rgba(59, 130, 246, 0.25);
-        }
-
-        .card-header {
+        .panel-head {
+            position: relative;
             display: flex;
+            align-items: flex-end;
             justify-content: space-between;
-            align-items: flex-start;
+            gap: 24px;
+            margin-bottom: clamp(26px, 4vw, 38px);
         }
 
-        .tech-index {
-            font-family: 'Share Tech Mono', monospace;
-            font-size: 0.85rem;
-            letter-spacing: 1.5px;
-            color: var(--text-secondary);
+        .panel-title {
+            margin: 0;
+            font-size: clamp(1.45rem, 3vw, 2.2rem);
+            font-weight: 500;
+            line-height: 1;
+            text-transform: uppercase;
         }
 
-        .card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid rgba(255, 255, 255, 0.05);
-            transition: all 0.3s;
-        }
-
-        .card-gh:hover .card-icon {
-            background: rgba(139, 92, 246, 0.15);
-            border-color: var(--neon-purple);
-            color: #c084fc;
-        }
-        .card-famm:hover .card-icon {
-            background: rgba(59, 130, 246, 0.15);
-            border-color: var(--neon-blue);
-            color: #60a5fa;
-        }
-
-        .card-icon svg {
-            width: 22px;
-            height: 22px;
-            fill: currentColor;
-        }
-
-        .card-body {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-        }
-
-        .card-title {
-            font-size: 1.5rem;
-            font-weight: 700;
-            letter-spacing: -0.5px;
-        }
-
-        .card-desc {
-            font-size: 0.9rem;
-            color: var(--text-secondary);
-            line-height: 1.6;
+        .panel-kicker {
+            color: var(--cyan);
+            font-size: 0.78rem;
             font-weight: 300;
+            letter-spacing: 0.18em;
+            text-transform: uppercase;
+        }
+
+        .gate-grid {
+            position: relative;
+            display: grid;
+            grid-template-columns: repeat(2, minmax(220px, 1fr));
+            gap: clamp(24px, 4vw, 34px);
+        }
+
+        .system-card {
+            position: relative;
+            min-width: 0;
+            padding: 14px;
+            color: inherit;
+            text-decoration: none;
+            background: rgba(2, 7, 17, 0.42);
+            border: 1px solid rgba(160, 210, 255, 0.18);
+            box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+            transition: transform 180ms ease, border-color 180ms ease, background 180ms ease, box-shadow 180ms ease;
+            outline: none;
+        }
+
+        .system-card:hover,
+        .system-card:focus-visible {
+            transform: translateY(-5px);
+            border-color: rgba(114, 215, 255, 0.62);
+            background: rgba(7, 17, 33, 0.76);
+            box-shadow: 0 22px 42px rgba(0, 0, 0, 0.35), 0 0 32px rgba(63, 140, 255, 0.14);
+        }
+
+        .system-card::before,
+        .system-card::after {
+            content: "";
+            position: absolute;
+            width: 28px;
+            height: 28px;
+            border-color: var(--line-strong);
+            pointer-events: none;
+        }
+
+        .system-card::before {
+            top: 8px;
+            left: 8px;
+            border-top: 1px solid;
+            border-left: 1px solid;
+        }
+
+        .system-card::after {
+            right: 8px;
+            bottom: 8px;
+            border-right: 1px solid;
+            border-bottom: 1px solid;
+        }
+
+        .image-frame {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            margin: 0;
+            background: #050814;
+            overflow: hidden;
+        }
+
+        .image-frame img {
+            width: 100%;
+            height: 100%;
+            display: block;
+            object-fit: cover;
+            transition: transform 260ms ease, filter 260ms ease;
+        }
+
+        .system-card:hover img,
+        .system-card:focus-visible img {
+            transform: scale(1.028);
+            filter: brightness(1.08) contrast(1.05);
+        }
+
+        .image-frame::after {
+            content: "";
+            position: absolute;
+            inset: 0;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            background: linear-gradient(180deg, rgba(114, 215, 255, 0.05), rgba(0, 0, 0, 0.1));
+            pointer-events: none;
+        }
+
+        .system-label {
+            position: absolute;
+            top: 16px;
+            left: 16px;
+            z-index: 1;
+            color: #bddbff;
+            font-size: clamp(3rem, 6vw, 3.45rem);
+            font-weight: 500;
+            line-height: 1;
+            text-transform: uppercase;
+            text-shadow: 0 1px 12px rgba(0, 0, 0, 0.6);
         }
 
         .card-footer {
-            margin-top: auto;
             display: flex;
             align-items: center;
-            gap: 8px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            letter-spacing: 0.5px;
-            transition: all 0.3s;
+            justify-content: space-between;
+            gap: 18px;
+            margin-top: 14px;
+            color: var(--text);
+            font-size: clamp(0.98rem, 1.8vw, 1.13rem);
+            font-weight: 500;
+            line-height: 1;
+            text-transform: uppercase;
         }
 
-        .card-gh .card-footer { color: #c084fc; }
-        .card-famm .card-footer { color: #60a5fa; }
-
-        .btn-arrow {
-            transition: transform 0.3s;
-        }
-        .dashboard-card:hover .btn-arrow {
-            transform: translateX(5px);
+        .card-footer span:last-child {
+            color: var(--cyan);
+            opacity: 0.78;
+            transition: transform 180ms ease, opacity 180ms ease;
         }
 
-        /* Footer */
-        footer {
-            width: 100%;
-            padding: 24px;
-            text-align: center;
-            font-size: 0.75rem;
-            color: rgba(255, 255, 255, 0.2);
-            font-family: 'Share Tech Mono', monospace;
-            border-top: 1px solid rgba(255, 255, 255, 0.02);
-            z-index: 10;
+        .system-card:hover .card-footer span:last-child,
+        .system-card:focus-visible .card-footer span:last-child {
+            transform: translateX(4px);
+            opacity: 1;
         }
 
-        /* Animations */
-        @keyframes pulse-glow {
-            0%, 100% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.15); opacity: 0.7; }
+        .bottomline {
+            display: flex;
+            justify-content: space-between;
+            gap: 24px;
+            color: rgba(237, 246, 255, 0.42);
+            font-size: 0.72rem;
+            font-weight: 300;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
         }
 
-        @keyframes pulse-border {
-            0% { border-color: var(--neon-blue); }
-            100% { border-color: var(--neon-purple); }
-        }
+        @media (max-width: 760px) {
+            .shell {
+                padding: 18px;
+            }
 
-        /* Responsive Layout (RWD) */
-        @media (max-width: 900px) {
-            .card-deck {
+            .topbar,
+            .panel-head,
+            .bottomline {
                 flex-direction: column;
-                align-items: center;
-                gap: 24px;
+                align-items: flex-start;
             }
-            .dashboard-card {
-                width: 100%;
-                padding: 30px;
+
+            .status-strip {
+                flex-wrap: wrap;
+                justify-content: flex-start;
+                white-space: normal;
             }
-            .hero-title {
-                font-size: 2.2rem;
-            }
-            header {
-                padding: 16px 20px;
+
+            .gate-grid {
+                grid-template-columns: 1fr;
             }
         }
     </style>
 </head>
 <body>
-    <div class="ambient-blue"></div>
-
-    <!-- SCADA Status Bar -->
-    <header>
-        <div class="scada-logo">
-            <div class="logo-box"></div>
-            <span class="logo-text">GJ_ARES</span>
-        </div>
-        <div class="scada-status">
-            <div class="status-item">
-                <div class="pulse-dot"></div>
-                <span>TELEMETRY ONLINE</span>
+    <main class="shell" aria-label="高將精機 SCADA 玻璃系統入口">
+        <header class="topbar">
+            <div class="brand">
+                <div class="brand-mark" aria-hidden="true"></div>
+                <div class="brand-text">
+                    <h1>高將精機</h1>
+                    <p>Digital Twin Entry Console</p>
+                </div>
             </div>
-            <div class="status-item">
-                <span>SYSTEM MODE:</span>
-                <span class="version-tag">AVO EVOLUTION ACTIVE</span>
+            <div class="status-strip">
+                <span class="live-dot" aria-hidden="true"></span>
+                <span>Telemetry Online</span>
+                <span>AVO Active</span>
             </div>
-            <div class="status-item">
-                <span>VER:</span>
-                <span class="version-tag" style="background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); color: #c084fc;">v2.65-Ares</span>
+        </header>
+
+        <section class="gate-panel" aria-label="Web3D system gates">
+            <div class="panel-head">
+                <h2 class="panel-title">System Gate</h2>
+                <div class="panel-kicker">SCADA Glass Interface / 2601GJ</div>
             </div>
-        </div>
-    </header>
 
-    <!-- Main Entry Gate -->
-    <main>
-        <div class="hero-section">
-            <h1 class="hero-title">3D Digital Twin Assembly Console</h1>
-            <p class="hero-subtitle">
-                歡迎進入 GJweb_Ares 精密組立運動遙測門戶。本系統基於雙視角隔離、LOD 背景無縫 Swap 加速與 HTML5 標準雙向 postMessage 連動，為您展示完美的離線控制三維數位沙盒。
-            </p>
-        </div>
-
-        <div class="card-deck">
-            <!-- GH Card -->
-            <a href="./GH/GH_Explorer_Premium.html" class="dashboard-card card-gh" id="card-gh-link">
-                <div class="card-header">
-                    <span class="tech-index">CONSOLE // 01</span>
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z"/>
-                        </svg>
+            <div class="gate-grid">
+                <a class="system-card" href="./FAMM/GaoJiang_Explorer_Premium.html" aria-label="進入 FAMM 系統">
+                    <figure class="image-frame">
+                        <img src="./img/FAMM.jpg" alt="FAMM 3D assembly model">
+                        <figcaption class="system-label">FAMM</figcaption>
+                    </figure>
+                    <div class="card-footer">
+                        <span>ENTER SYSTEM GATE</span>
+                        <span aria-hidden="true">→</span>
                     </div>
-                </div>
-                <div class="card-body">
-                    <h2 class="card-title">GH 智慧組立主控台</h2>
-                    <p class="card-desc">
-                        國瑞精密組件 3D 數位雙生展示系統。包含左/右側傳動導柱組立等 10 組精密 Standalone 組件與整體模型 FFMTH，支持多軌動畫分析、材質切換、及絲滑的拖拽無級 Scrubber 時鐘鎖控制。
-                    </p>
-                </div>
-                <div class="card-footer">
-                    <span>ENTER SYSTEM GATE</span>
-                    <span class="btn-arrow">→</span>
-                </div>
-            </a>
+                </a>
 
-            <!-- FAMM Card -->
-            <a href="./FAMM/GaoJiang_Explorer_Premium.html" class="dashboard-card card-famm" id="card-famm-link">
-                <div class="card-header">
-                    <span class="tech-index">CONSOLE // 02</span>
-                    <div class="card-icon">
-                        <svg viewBox="0 0 24 24">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H7c0-2.76 2.24-5 5-5s5 2.24 5 5c0 1.04-.42 1.99-1.07 2.75z"/>
-                        </svg>
+                <a class="system-card" href="./GH/GH_Explorer_Premium.html" aria-label="進入 FM-350 系統">
+                    <figure class="image-frame">
+                        <img src="./img/FM-350.jpg" alt="FM-350 3D machine model">
+                        <figcaption class="system-label">FM-350</figcaption>
+                    </figure>
+                    <div class="card-footer">
+                        <span>ENTER SYSTEM GATE</span>
+                        <span aria-hidden="true">→</span>
                     </div>
-                </div>
-                <div class="card-body">
-                    <h2 class="card-title">FAMM 智慧組立主控台</h2>
-                    <p class="card-desc">
-                        高江高精密組立數位雙生展示系統。整合 02.Mortar、04Base、GuidePost 等高精細 3D 組件。全面對接 AVO 標準時間軸計時狀態鎖，呈現無死角重工業機械拆解展示。
-                    </p>
-                </div>
-                <div class="card-footer">
-                    <span>ENTER SYSTEM GATE</span>
-                    <span class="btn-arrow">→</span>
-                </div>
-            </a>
-        </div>
+                </a>
+            </div>
+        </section>
+
+        <footer class="bottomline">
+            <span>GJWEB_ARES / SCADA GLASS GATE</span>
+            <span>LOCAL FILE READY / POSTMESSAGE SYSTEM</span>
+        </footer>
     </main>
-
-    <!-- Footer -->
-    <footer>
-        AIGC AGENTIC SCADA SYSTEM // OPERATOR: AVO SMART EVOLUTION AGENT // CORPUS: 2601GJ
-    </footer>
 </body>
 </html>
